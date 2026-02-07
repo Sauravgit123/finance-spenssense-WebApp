@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { PieChart, Pie } from 'recharts';
+import { PieChart, Pie, Cell } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { type Expense } from '@/lib/types';
 import {
@@ -71,7 +71,15 @@ export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) 
                 nameKey="category"
                 innerRadius={60}
                 strokeWidth={5}
-              />
+              >
+                {chartData.map((entry) => (
+                  <Cell
+                    key={`cell-${entry.category}`}
+                    fill={`var(--color-${entry.category})`}
+                    className="stroke-background"
+                  />
+                ))}
+              </Pie>
               <ChartLegend
                 content={<ChartLegendContent nameKey="category" />}
               />
