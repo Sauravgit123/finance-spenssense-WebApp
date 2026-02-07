@@ -14,6 +14,7 @@ import { Home, Sparkles, PiggyBank, Edit } from 'lucide-react';
 import { IncomeSetter } from './income-setter';
 import { Button } from '../ui/button';
 import { ExpenseBreakdownChart } from './expense-breakdown-chart';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 export function DashboardContainer() {
   const { user, loading } = useAuth();
@@ -61,7 +62,7 @@ export function DashboardContainer() {
     };
   }, [user, loading, router]);
 
-  const { needsTotal, wantsTotal, savingsTotal, needsSpent, wantsSpent, savingsSpent } = useMemo(() => {
+  const { needsTotal, wantsTotal, savingsTotal, needsSpent, wantsSpent, savingsSpent, totalSpent } = useMemo(() => {
     const income = userData?.income || 0;
     const needsTotal = income * 0.5;
     const wantsTotal = income * 0.3;
@@ -70,8 +71,9 @@ export function DashboardContainer() {
     const needsSpent = expenses.filter(e => e.category === 'Needs').reduce((acc, e) => acc + e.amount, 0);
     const wantsSpent = expenses.filter(e => e.category === 'Wants').reduce((acc, e) => acc + e.amount, 0);
     const savingsSpent = expenses.filter(e => e.category === 'Savings').reduce((acc, e) => acc + e.amount, 0);
+    const totalSpent = needsSpent + wantsSpent + savingsSpent;
 
-    return { needsTotal, wantsTotal, savingsTotal, needsSpent, wantsSpent, savingsSpent };
+    return { needsTotal, wantsTotal, savingsTotal, needsSpent, wantsSpent, savingsSpent, totalSpent };
   }, [userData, expenses]);
 
   if (loading || dataLoading) {
@@ -96,12 +98,13 @@ export function DashboardContainer() {
   }
 
   const income = userData?.income || 0;
+  const remainingIncome = income - totalSpent;
 
   return (
-    <div className="container mx-auto p-4 md:p-8">
-      <div className="flex justify-between items-center mb-6">
+    <div className="container mx-auto p-4 md:p-8 space-y-8">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">Welcome back, {user?.email}!</p>
         </div>
         <div>
@@ -118,24 +121,43 @@ export function DashboardContainer() {
         currentIncome={income}
       />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalSpent)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Remaining Income</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(remainingIncome)}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <BudgetCategoryCard
           title="Needs"
-          icon={<Home className="h-6 w-6" />}
+          icon={<Home className="h-5 w-5 text-muted-foreground" />}
           percentage={50}
           allocated={needsTotal}
           spent={needsSpent}
         />
         <BudgetCategoryCard
           title="Wants"
-          icon={<Sparkles className="h-6 w-6" />}
+          icon={<Sparkles className="h-5 w-5 text-muted-foreground" />}
           percentage={30}
           allocated={wantsTotal}
           spent={wantsSpent}
         />
         <BudgetCategoryCard
           title="Savings"
-          icon={<PiggyBank className="h-6 w-6" />}
+          icon={<PiggyBank className="h-5 w-5 text-muted-foreground" />}
           percentage={20}
           allocated={savingsTotal}
           spent={savingsSpent}
