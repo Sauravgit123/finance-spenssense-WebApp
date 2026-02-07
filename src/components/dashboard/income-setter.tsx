@@ -64,11 +64,11 @@ export function IncomeSetter({ isOpen, setIsOpen, currentIncome }: IncomeSetterP
         description: 'Your monthly income has been updated.',
       });
       setIsOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Error updating income',
-        description: 'Could not save your income. Please try again.',
+        description: error.message || 'Could not save your income. Please try again.',
       });
     } finally {
       setIsLoading(false);

@@ -66,11 +66,11 @@ export function AddExpenseForm() {
         description: `${values.name} has been added to your ${values.category}.`,
       });
       form.reset();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Error adding expense',
-        description: 'Could not save your expense. Please try again.',
+        description: error.message || 'Could not save your expense. Please try again.',
       });
     } finally {
       setIsLoading(false);
