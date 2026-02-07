@@ -24,7 +24,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 bg-background/80 backdrop-blur-sm px-4 md:px-6 shadow-sm">
       <Link href="/dashboard" className="flex items-center gap-2">
         <BudgetFlowLogo />
       </Link>
