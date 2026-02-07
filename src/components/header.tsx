@@ -24,7 +24,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b-0 bg-background/80 px-4 shadow-sm backdrop-blur-sm md:px-6">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b-0 bg-background/80 px-4 shadow-md backdrop-blur-sm md:px-6">
       <Link href="/dashboard" className="flex items-center gap-2">
         <SpendSenseLogo />
       </Link>
