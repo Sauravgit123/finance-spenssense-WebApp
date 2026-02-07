@@ -105,7 +105,7 @@ export function AddExpenseForm() {
                 <FormItem>
                   <FormLabel>Amount ($)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="e.g., 75.50" {...field} />
+                    <Input type="number" step="0.01" placeholder="e.g., 75.50" {...field} value={field.value ?? ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

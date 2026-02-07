@@ -93,7 +93,7 @@ export function IncomeSetter({ isOpen, setIsOpen, currentIncome }: IncomeSetterP
                 <FormItem>
                   <FormLabel>Monthly Income ($)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="3000" {...field} />
+                    <Input type="number" placeholder="3000" {...field} value={field.value ?? ''}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
