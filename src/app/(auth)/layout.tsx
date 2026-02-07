@@ -1,4 +1,4 @@
-import { BudgetFlowLogo } from "@/components/logo";
+import { SpendSenseLogo } from "@/components/logo";
 
 export default function AuthLayout({
   children,
@@ -8,7 +8,7 @@ export default function AuthLayout({
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="mb-8">
-        <BudgetFlowLogo />
+        <SpendSenseLogo />
       </div>
       {children}
     </main>

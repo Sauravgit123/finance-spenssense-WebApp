@@ -1,10 +1,10 @@
-import { Wallet } from 'lucide-react';
+import { CircleDollarSign } from 'lucide-react';
 
-export function BudgetFlowLogo() {
+export function SpendSenseLogo() {
   return (
     <div className="flex items-center gap-2">
-      <Wallet className="h-8 w-8 text-primary" />
-      <h1 className="text-2xl font-bold text-foreground">BudgetFlow</h1>
+      <CircleDollarSign className="h-8 w-8 text-primary" />
+      <h1 className="text-2xl font-bold text-foreground">SpendSense</h1>
     </div>
   );
 }

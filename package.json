@@ -1,8 +1,8 @@
 {
-  "name": "budgetflow",
+  "name": "spendsense",
   "version": "0.1.0",
   "private": true,
-  "description": "A 50/30/20 Budget Automator using Firebase and Next.js.",
+  "description": "Your personal guide to smart spending.",
   "scripts": {
     "dev": "next dev --turbopack -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",

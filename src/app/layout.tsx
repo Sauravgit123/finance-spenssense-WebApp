@@ -4,8 +4,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/components/auth-provider';
 
 export const metadata: Metadata = {
-  title: 'BudgetFlow',
-  description: 'Your personal 50/30/20 budget automator.',
+  title: 'SpendSense',
+  description: 'Your personal guide to smart spending.',
 };
 
 export default function RootLayout({

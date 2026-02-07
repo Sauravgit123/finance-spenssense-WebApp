@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { useAuth } from './auth-provider';
-import { BudgetFlowLogo } from './logo';
+import { SpendSenseLogo } from './logo';
 import { LogOut } from 'lucide-react';
 
 export function Header() {
@@ -24,9 +24,9 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 bg-background/80 backdrop-blur-sm px-4 md:px-6 shadow-sm">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b-0 bg-background/80 px-4 shadow-sm backdrop-blur-sm md:px-6">
       <Link href="/dashboard" className="flex items-center gap-2">
-        <BudgetFlowLogo />
+        <SpendSenseLogo />
       </Link>
       <div className="ml-auto">
         {loading ? (
