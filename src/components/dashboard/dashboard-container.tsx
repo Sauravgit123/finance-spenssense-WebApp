@@ -13,6 +13,7 @@ import { ExpenseList } from './expense-list';
 import { Home, Sparkles, PiggyBank, Edit } from 'lucide-react';
 import { IncomeSetter } from './income-setter';
 import { Button } from '../ui/button';
+import { ExpenseBreakdownChart } from './expense-breakdown-chart';
 
 export function DashboardContainer() {
   const { user, loading } = useAuth();
@@ -141,13 +142,17 @@ export function DashboardContainer() {
         />
       </div>
 
-      <div className="grid gap-8 md:grid-cols-5">
-        <div className="md:col-span-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+        <div className="lg:col-span-2">
           <AddExpenseForm />
         </div>
-        <div className="md:col-span-3">
-          <ExpenseList expenses={expenses} />
+        <div className="lg:col-span-3">
+          <ExpenseBreakdownChart expenses={expenses} />
         </div>
+      </div>
+
+      <div className="mt-8">
+        <ExpenseList expenses={expenses} />
       </div>
     </div>
   );
