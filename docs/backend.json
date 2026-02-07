@@ -1,0 +1,59 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Represents a user's profile data.",
+      "type": "object",
+      "properties": {
+        "income": {
+          "type": "number",
+          "description": "The user's monthly income."
+        }
+      },
+      "required": ["income"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Represents a single expense transaction.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the expense."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the expense."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the expense.",
+          "enum": ["Needs", "Wants", "Savings"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the expense was created."
+        }
+      },
+      "required": ["name", "amount", "category", "createdAt"]
+    }
+  },
+  "auth": {
+    "providers": ["email-password"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/backend/entities/UserProfile"
+      },
+      "description": "Stores user profile data, keyed by user ID."
+    },
+    "/users/{userId}/expenses/{expenseId}": {
+      "schema": {
+        "$ref": "#/backend/entities/Expense"
+      },
+      "description": "Stores expenses for a user."
+    }
+  }
+}
