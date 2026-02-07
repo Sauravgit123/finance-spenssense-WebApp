@@ -10,11 +10,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { BudgetCategoryCard } from './budget-category-card';
 import { AddExpenseForm } from './add-expense-form';
 import { ExpenseList } from './expense-list';
-import { Home, Sparkles, PiggyBank, Edit } from 'lucide-react';
+import { Home, Sparkles, PiggyBank, Edit, DollarSign, CreditCard, WalletCards, BadgePercent } from 'lucide-react';
 import { IncomeSetter } from './income-setter';
 import { Button } from '../ui/button';
 import { ExpenseBreakdownChart } from './expense-breakdown-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(amount);
+};
 
 export function DashboardContainer() {
   const { user, loading } = useAuth();
@@ -99,6 +106,7 @@ export function DashboardContainer() {
 
   const income = userData?.income || 0;
   const remainingIncome = income - totalSpent;
+  const savingsRate = income > 0 ? (savingsSpent / income) * 100 : 0;
 
   return (
     <div className="container mx-auto p-4 md:p-8 space-y-8">
@@ -110,7 +118,7 @@ export function DashboardContainer() {
         <div>
           <Button variant="outline" onClick={() => setIncomeModalOpen(true)}>
              <Edit className="mr-2 h-4 w-4" /> 
-             {`Income: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(income)}`}
+             Edit Income
           </Button>
         </div>
       </div>
@@ -120,61 +128,79 @@ export function DashboardContainer() {
         setIsOpen={setIncomeModalOpen}
         currentIncome={income}
       />
+      
+      <div className="grid gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-8">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(income)}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(totalSpent)}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Remaining</CardTitle>
+                  <WalletCards className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${remainingIncome < 0 ? 'text-destructive' : ''}`}>{formatCurrency(remainingIncome)}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Savings Rate</CardTitle>
+                  <BadgePercent className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{savingsRate.toFixed(0)}%</div>
+                </CardContent>
+              </Card>
+          </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalSpent)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Remaining Income</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(remainingIncome)}</div>
-          </CardContent>
-        </Card>
-      </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            <BudgetCategoryCard
+              title="Needs"
+              icon={<Home className="h-5 w-5 text-muted-foreground" />}
+              percentage={50}
+              allocated={needsTotal}
+              spent={needsSpent}
+            />
+            <BudgetCategoryCard
+              title="Wants"
+              icon={<Sparkles className="h-5 w-5 text-muted-foreground" />}
+              percentage={30}
+              allocated={wantsTotal}
+              spent={wantsSpent}
+            />
+            <BudgetCategoryCard
+              title="Savings"
+              icon={<PiggyBank className="h-5 w-5 text-muted-foreground" />}
+              percentage={20}
+              allocated={savingsTotal}
+              spent={savingsSpent}
+            />
+          </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <BudgetCategoryCard
-          title="Needs"
-          icon={<Home className="h-5 w-5 text-muted-foreground" />}
-          percentage={50}
-          allocated={needsTotal}
-          spent={needsSpent}
-        />
-        <BudgetCategoryCard
-          title="Wants"
-          icon={<Sparkles className="h-5 w-5 text-muted-foreground" />}
-          percentage={30}
-          allocated={wantsTotal}
-          spent={wantsSpent}
-        />
-        <BudgetCategoryCard
-          title="Savings"
-          icon={<PiggyBank className="h-5 w-5 text-muted-foreground" />}
-          percentage={20}
-          allocated={savingsTotal}
-          spent={savingsSpent}
-        />
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <div className="lg:col-span-2">
-          <AddExpenseForm />
+          <ExpenseList expenses={expenses} />
         </div>
-        <div className="lg:col-span-3">
-          <ExpenseBreakdownChart expenses={expenses} />
-        </div>
-      </div>
 
-      <div className="mt-8">
-        <ExpenseList expenses={expenses} />
+        <div className="space-y-8">
+            <AddExpenseForm />
+            <ExpenseBreakdownChart expenses={expenses} />
+        </div>
       </div>
     </div>
   );
