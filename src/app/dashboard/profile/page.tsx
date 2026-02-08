@@ -8,7 +8,7 @@ import { useAuth } from '@/firebase/auth-provider';
 import { useFirestore, useFirebaseStorage } from '@/firebase/provider';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { useState, useEffect, ChangeEvent } from 'react';
+import { useState, useEffect, ChangeEvent, useMemo } from 'react';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,11 @@ export default function ProfilePage() {
   const [imageToCrop, setImageToCrop] = useState<string>('');
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [selectedDefaultUrl, setSelectedDefaultUrl] = useState<string | null>(null);
+
+  const carouselOpts = useMemo(() => ({
+    align: 'start' as const,
+    loop: true,
+  }), []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -230,14 +235,12 @@ export default function ProfilePage() {
                 <div className="space-y-4 w-full">
                     <FormLabel className="font-semibold text-center block">Or choose a default avatar</FormLabel>
                     <Carousel
-                        opts={{
-                            align: "start",
-                        }}
+                        opts={carouselOpts}
                         className="w-full max-w-sm sm:max-w-md mx-auto"
                     >
                         <CarouselContent className="-ml-2">
                             {defaultAvatars.map((url, index) => (
-                                <CarouselItem key={index} className="pl-2 basis-1/4 sm:basis-1/5">
+                                <CarouselItem key={url} className="pl-2 basis-1/4 sm:basis-1/5">
                                     <div
                                         onClick={() => handleDefaultAvatarSelect(url)}
                                         className={cn(
