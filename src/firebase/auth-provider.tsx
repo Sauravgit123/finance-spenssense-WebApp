@@ -40,19 +40,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
   
   const refreshUser = useCallback(async () => {
-    if (auth.currentUser) {
-      await auth.currentUser.reload();
-      // Create a new object to force a re-render in components using the user object
-      setUser({ ...auth.currentUser });
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      await currentUser.reload();
+      // Create a new object to ensure React state detects the change
+      setUser({ ...currentUser });
     }
   }, [auth]);
 
   if (loading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center">
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-950">
         <div className="w-full max-w-sm space-y-4 p-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-10 w-full bg-white/10" />
+            <Skeleton className="h-64 w-full bg-white/10" />
         </div>
       </div>
     );

@@ -49,10 +49,13 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    if (user?.photoURL) {
-      setImagePreview(user.photoURL);
+    if (user) {
+        form.reset({ displayName: user.displayName || '' });
+        if (user.photoURL) {
+            setImagePreview(user.photoURL);
+        }
     }
-  }, [user?.photoURL]);
+  }, [user, form]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -146,20 +149,28 @@ export default function ProfilePage() {
                 
                 <FormItem className="flex flex-col items-center space-y-4 pt-6">
                   <FormLabel>Profile Picture</FormLabel>
-                  <Avatar className="h-32 w-32">
-                    <AvatarImage src={imagePreview || ''} alt={user?.displayName || ''} />
-                    <AvatarFallback className="text-4xl bg-muted">
-                        {getInitials(user?.displayName)}
-                    </AvatarFallback>
+                  <Avatar className="h-32 w-32 cursor-pointer">
+                    <label htmlFor="profile-picture-upload" className="cursor-pointer rounded-full">
+                        <AvatarImage src={imagePreview || ''} alt={user?.displayName || ''} />
+                        <AvatarFallback className="text-4xl bg-muted">
+                            {getInitials(user?.displayName)}
+                        </AvatarFallback>
+                    </label>
                   </Avatar>
                   <FormControl>
                     <Input 
+                      id="profile-picture-upload"
                       type="file" 
                       accept="image/png, image/jpeg"
                       onChange={handleImageChange}
-                      className="max-w-xs file:text-foreground bg-white/5 border-white/20"
+                      className="sr-only"
                     />
                   </FormControl>
+                   <Button asChild variant="outline" size="sm">
+                       <label htmlFor="profile-picture-upload" className="cursor-pointer">
+                           Choose Image
+                       </label>
+                   </Button>
                   <FormMessage />
                 </FormItem>
 
