@@ -13,7 +13,11 @@ export function FirebaseErrorListener() {
     const handlePermissionError = (error: FirestorePermissionError) => {
       // In development, we want to throw the error to see the Next.js overlay
       if (process.env.NODE_ENV === 'development') {
-        throw error;
+        // We throw it in a timeout to avoid blocking the call stack of the emitter.
+        // This allows `finally` blocks in components to execute and clean up state.
+        setTimeout(() => {
+          throw error;
+        }, 0);
       } else {
         // In production, just show a generic toast and log the error
         console.error(error);
