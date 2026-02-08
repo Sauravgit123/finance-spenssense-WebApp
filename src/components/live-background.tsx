@@ -29,7 +29,7 @@ const generateIcons = (): IconDetail[] => {
     icons.push({
       id: i,
       Icon: type.Icon,
-      className: cn('absolute opacity-15 blur-sm', type.color),
+      className: cn('absolute opacity-25 blur-sm', type.color),
       style: {
         left: `${Math.random() * 100}vw`,
         top: '110vh',
@@ -51,6 +51,7 @@ export function LiveBackground() {
   const [icons, setIcons] = useState<IconDetail[]>([]);
 
   useEffect(() => {
+    // Icons are generated only on the client-side to avoid hydration mismatches
     setIcons(generateIcons());
   }, []);
 
