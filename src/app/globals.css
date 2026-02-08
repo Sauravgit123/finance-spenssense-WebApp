@@ -30,6 +30,15 @@
     --chart-5: 350 90% 60%;
     --radius: 1rem;
   }
+
+  @keyframes float-up {
+    from {
+      transform: translateY(0) rotate(0deg);
+    }
+    to {
+      transform: translateY(-120vh) rotate(var(--end-rotation, 360deg));
+    }
+  }
 }
 
 @layer base {

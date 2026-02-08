@@ -89,20 +89,10 @@ export default {
             height: '0',
           },
         },
-        'float-1': {
-            '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
-            '50%': { transform: 'translate(-25%, 20%) rotate(25deg)' },
-        },
-        'float-2': {
-            '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
-            '50%': { transform: 'translate(20%, -25%) rotate(-25deg)' },
-        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'float-1': 'float-1 8s ease-in-out infinite',
-        'float-2': 'float-2 8s ease-in-out infinite',
       },
     },
   },
