@@ -29,7 +29,7 @@ const generateIcons = (): IconDetail[] => {
     icons.push({
       id: i,
       Icon: type.Icon,
-      className: cn('absolute opacity-75', type.color),
+      className: cn('absolute opacity-60 blur-[1px] drop-shadow-md', type.color),
       style: {
         left: `${Math.random() * 100}vw`,
         top: '110vh',
@@ -54,11 +54,16 @@ export function LiveBackground() {
     // Icons are generated only on the client-side to avoid hydration mismatches
     setIcons(generateIcons());
   }, []);
+  
+  if (icons.length === 0) {
+    // This part ensures the background is always rendered, even on SSR.
+    return <div className="fixed inset-0 -z-10 h-full w-full overflow-hidden bg-gradient-to-br from-slate-950 to-gray-900 pointer-events-none" />;
+  }
 
   return (
     <div className="fixed inset-0 -z-10 h-full w-full overflow-hidden bg-gradient-to-br from-slate-950 to-gray-900 pointer-events-none">
       {icons.map(({ id, Icon, className, style }) => (
-        <Icon key={id} className={className} style={style} strokeWidth={0.5} />
+        <Icon key={id} className={className} style={style} strokeWidth={1} />
       ))}
     </div>
   );
