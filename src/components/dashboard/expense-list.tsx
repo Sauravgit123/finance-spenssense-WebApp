@@ -125,7 +125,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
 
   return (
     <>
-      <Card>
+      <Card className="bg-white/5 backdrop-blur-md border border-white/10 shadow-lg rounded-2xl">
         <CardHeader>
           <CardTitle>Recent Expenses</CardTitle>
           <CardDescription>
@@ -135,7 +135,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="border-white/10">
                 <TableHead>Expense</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
@@ -146,13 +146,16 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
             <TableBody>
               {expenses.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell
+                    colSpan={5}
+                    className="h-24 text-center border-white/10"
+                  >
                     No expenses added yet.
                   </TableCell>
                 </TableRow>
               ) : (
                 expenses.slice(0, 10).map((expense) => (
-                  <TableRow key={expense.id}>
+                  <TableRow key={expense.id} className="border-white/10">
                     <TableCell className="font-medium">{expense.name}</TableCell>
                     <TableCell>
                       <Badge variant={categoryBadgeVariant(expense.category)}>
@@ -186,7 +189,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-slate-900/80 backdrop-blur-md border-white/20">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>

@@ -7,6 +7,7 @@ interface BudgetCategoryCardProps {
   percentage: number;
   allocated: number;
   spent: number;
+  indicatorClassName?: string;
 }
 
 export function BudgetCategoryCard({
@@ -15,6 +16,7 @@ export function BudgetCategoryCard({
   percentage,
   allocated,
   spent,
+  indicatorClassName,
 }: BudgetCategoryCardProps) {
   const progressValue = allocated > 0 ? (spent / allocated) * 100 : 0;
   const remaining = allocated - spent;
@@ -24,7 +26,7 @@ export function BudgetCategoryCard({
   };
 
   return (
-    <Card>
+    <Card className="bg-white/5 backdrop-blur-md border border-white/10 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title} ({percentage}%)</CardTitle>
         <div className="text-muted-foreground">{icon}</div>
@@ -34,7 +36,11 @@ export function BudgetCategoryCard({
         <p className="text-xs text-muted-foreground">
           {formatCurrency(spent)} spent
         </p>
-        <Progress value={progressValue} className="mt-4" />
+        <Progress
+          value={progressValue}
+          className="mt-4"
+          indicatorClassName={indicatorClassName}
+        />
         <p className="text-xs text-muted-foreground mt-2">
           {formatCurrency(remaining)} remaining
         </p>

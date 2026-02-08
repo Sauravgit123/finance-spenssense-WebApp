@@ -102,18 +102,18 @@ export function DashboardContainer() {
   if (loading || dataLoading) {
     return (
       <div className="container mx-auto p-4 md:p-8">
-        <Skeleton className="h-8 w-1/4 mb-6" />
+        <Skeleton className="h-8 w-1/4 mb-6 bg-white/10" />
         <div className="grid gap-6 md:grid-cols-3 mb-8">
-          <Skeleton className="h-40 rounded-lg" />
-          <Skeleton className="h-40 rounded-lg" />
-          <Skeleton className="h-40 rounded-lg" />
+          <Skeleton className="h-40 rounded-2xl bg-white/10" />
+          <Skeleton className="h-40 rounded-2xl bg-white/10" />
+          <Skeleton className="h-40 rounded-2xl bg-white/10" />
         </div>
         <div className="grid gap-8 md:grid-cols-5">
           <div className="md:col-span-2">
-            <Skeleton className="h-64 rounded-lg" />
+            <Skeleton className="h-64 rounded-2xl bg-white/10" />
           </div>
           <div className="md:col-span-3">
-            <Skeleton className="h-64 rounded-lg" />
+            <Skeleton className="h-64 rounded-2xl bg-white/10" />
           </div>
         </div>
       </div>
@@ -148,40 +148,40 @@ export function DashboardContainer() {
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
+              <Card className="bg-white/5 backdrop-blur-md border border-white/10 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Income</CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(income)}</div>
+                  <div className="text-3xl font-bold">{formatCurrency(income)}</div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="bg-white/5 backdrop-blur-md border border-white/10 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(totalSpent)}</div>
+                  <div className="text-3xl font-bold">{formatCurrency(totalSpent)}</div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="bg-white/5 backdrop-blur-md border border-white/10 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Remaining</CardTitle>
                   <WalletCards className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-2xl font-bold ${remainingIncome < 0 ? 'text-destructive' : ''}`}>{formatCurrency(remainingIncome)}</div>
+                  <div className={`text-3xl font-bold ${remainingIncome < 0 ? 'text-destructive' : ''}`}>{formatCurrency(remainingIncome)}</div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="bg-white/5 backdrop-blur-md border border-white/10 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Savings Rate</CardTitle>
                   <BadgePercent className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{savingsRate.toFixed(0)}%</div>
+                  <div className="text-3xl font-bold">{savingsRate.toFixed(0)}%</div>
                 </CardContent>
               </Card>
           </div>
@@ -189,24 +189,27 @@ export function DashboardContainer() {
           <div className="grid gap-6 md:grid-cols-3">
             <BudgetCategoryCard
               title="Needs"
-              icon={<Home className="h-5 w-5 text-muted-foreground" />}
+              icon={<Home className="h-5 w-5 text-sky-400" />}
               percentage={50}
               allocated={needsTotal}
               spent={needsSpent}
+              indicatorClassName="bg-sky-500"
             />
             <BudgetCategoryCard
               title="Wants"
-              icon={<Sparkles className="h-5 w-5 text-muted-foreground" />}
+              icon={<Sparkles className="h-5 w-5 text-violet-400" />}
               percentage={30}
               allocated={wantsTotal}
               spent={wantsSpent}
+              indicatorClassName="bg-violet-500"
             />
             <BudgetCategoryCard
               title="Savings"
-              icon={<PiggyBank className="h-5 w-5 text-muted-foreground" />}
+              icon={<PiggyBank className="h-5 w-5 text-emerald-400" />}
               percentage={20}
               allocated={savingsTotal}
               spent={savingsSpent}
+              indicatorClassName="bg-emerald-500"
             />
           </div>
 
