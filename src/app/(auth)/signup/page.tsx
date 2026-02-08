@@ -22,8 +22,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 const formSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -65,14 +63,7 @@ export default function SignupPage() {
         income: 0,
         photoURL: '',
       };
-      await setDoc(userDocRef, initialUserData).catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: userDocRef.path,
-          operation: 'create',
-          requestResourceData: initialUserData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
+      await setDoc(userDocRef, initialUserData);
 
       toast({
         title: 'Account created.',

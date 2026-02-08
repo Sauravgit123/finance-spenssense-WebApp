@@ -25,8 +25,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { ImageCropper } from '@/components/dashboard/image-cropper';
 
 const formSchema = z.object({
@@ -93,7 +91,7 @@ export default function ProfilePage() {
     try {
       let newPhotoURL = user.photoURL;
 
-      // 1. Upload image if it exists (this can be slow)
+      // 1. Upload image if it exists
       if (imageFile) {
         const fileRef = storageRef(storage, `profile-pictures/${user.uid}`);
         await uploadBytes(fileRef, imageFile, { contentType: 'image/jpeg' });
@@ -110,14 +108,7 @@ export default function ProfilePage() {
 
       // 3. Update the user's document in Firestore
       const userDocRef = doc(db, 'users', user.uid);
-      await updateDoc(userDocRef, updatedUserData).catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: userDocRef.path,
-          operation: 'update',
-          requestResourceData: updatedUserData,
-        });
-        throw permissionError;
-      });
+      await updateDoc(userDocRef, updatedUserData);
         
       // 4. Manually refresh the user state to reflect changes immediately
       await refreshUser();
@@ -129,16 +120,12 @@ export default function ProfilePage() {
       setImageFile(null);
 
     } catch (error: any) {
-      // This will catch any error from the whole process
-      if (error instanceof FirestorePermissionError) {
-        errorEmitter.emit('permission-error', error);
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Uh oh! Something went wrong.',
-          description: error.message || 'Could not save your profile.',
-        });
-      }
+      console.error("Profile update failed:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Uh oh! Something went wrong.',
+        description: error.message || 'Could not save your profile.',
+      });
     } finally {
       // 5. Stop the loading indicator
       setIsLoading(false);
