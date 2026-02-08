@@ -10,8 +10,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Poppins', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+        body: ['"Plus Jakarta Sans"', 'sans-serif'],
+        headline: ['"Plus Jakarta Sans"', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
@@ -88,10 +89,20 @@ export default {
             height: '0',
           },
         },
+        'float-1': {
+            '0%, 100%': { transform: 'translate(-50%, -50%)' },
+            '50%': { transform: 'translate(-55%, -45%)' },
+        },
+        'float-2': {
+            '0%, 100%': { transform: 'translate(33%, 33%)' },
+            '50%': { transform: 'translate(38%, 28%)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'float-1': 'float-1 20s ease-in-out infinite',
+        'float-2': 'float-2 20s ease-in-out infinite',
       },
     },
   },
