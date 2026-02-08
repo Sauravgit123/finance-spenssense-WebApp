@@ -5,12 +5,21 @@
       "description": "Represents a user's profile data.",
       "type": "object",
       "properties": {
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "photoURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "The URL of the user's profile picture."
+        },
         "income": {
           "type": "number",
           "description": "The user's monthly income."
         }
       },
-      "required": ["income"]
+      "required": ["income", "displayName"]
     },
     "Expense": {
       "title": "Expense",

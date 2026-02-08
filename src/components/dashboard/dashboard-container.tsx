@@ -53,8 +53,12 @@ export function DashboardContainer() {
           setIncomeModalOpen(true);
         }
       } else {
-        // Create user document if it doesn't exist
-        const initialData = { income: 0 };
+        // This case is now handled at signup, but kept as a fallback.
+        const initialData = { 
+          income: 0,
+          displayName: user.displayName || 'New User',
+          photoURL: user.photoURL || '',
+        };
         setDoc(userDocRef, initialData).catch(serverError => {
           const permissionError = new FirestorePermissionError({
             path: userDocRef.path,
@@ -137,7 +141,7 @@ export function DashboardContainer() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user?.email}!</p>
+          <p className="text-muted-foreground">Welcome back, {user?.displayName || user?.email}!</p>
         </div>
         <div>
           <Button variant="outline" onClick={() => setIncomeModalOpen(true)}>

@@ -13,14 +13,23 @@ import {
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/firebase/auth-provider';
 import { SpendSenseLogo } from './logo';
-import { LogOut } from 'lucide-react';
+import { LogOut, User as UserIcon } from 'lucide-react';
 
 export function Header() {
   const { user, logout, loading } = useAuth();
 
-  const getInitials = (email: string | null | undefined) => {
-    if (!email) return 'U';
-    return email[0].toUpperCase();
+  const getInitials = (name: string | null | undefined, email: string | null | undefined) => {
+    if (name) {
+      const names = name.split(' ');
+      if (names.length > 1 && names[names.length - 1]) {
+        return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase();
+    }
+    if (email) {
+      return email[0].toUpperCase();
+    }
+    return 'U';
   };
 
   return (
@@ -37,13 +46,19 @@ export function Header() {
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar>
                   <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
-                  <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+                  <AvatarFallback>{getInitials(user.displayName, user.email)}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-slate-900/80 backdrop-blur-md border-white/20">
-              <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+              <DropdownMenuLabel>{user.displayName || user.email}</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/profile">
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
