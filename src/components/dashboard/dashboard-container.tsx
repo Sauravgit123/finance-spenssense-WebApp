@@ -54,8 +54,16 @@ export function DashboardContainer() {
         }
       } else {
         // Create user document if it doesn't exist
-        setDoc(userDocRef, { income: 0 });
-        setUserData({ income: 0 });
+        const initialData = { income: 0 };
+        setDoc(userDocRef, initialData).catch(serverError => {
+          const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'create',
+            requestResourceData: initialData
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        });
+        setUserData(initialData);
         setIncomeModalOpen(true);
       }
       setDataLoading(false);
@@ -148,7 +156,7 @@ export function DashboardContainer() {
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
+              <Card className="bg-white/10 backdrop-blur-md border-transparent shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Income</CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -157,7 +165,7 @@ export function DashboardContainer() {
                   <div className="text-3xl font-bold">{formatCurrency(income)}</div>
                 </CardContent>
               </Card>
-              <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
+              <Card className="bg-white/10 backdrop-blur-md border-transparent shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
@@ -166,16 +174,16 @@ export function DashboardContainer() {
                   <div className="text-3xl font-bold">{formatCurrency(totalSpent)}</div>
                 </CardContent>
               </Card>
-              <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
+              <Card className="bg-white/10 backdrop-blur-md border-transparent shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Available Balance</CardTitle>
                   <WalletCards className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-3xl font-bold ${remainingIncome < 0 ? 'text-destructive' : ''}`}>{formatCurrency(remainingIncome)}</div>
+                  <div className={`text-3xl font-bold ${remainingIncome < 0 ? 'text-red-400' : ''}`}>{formatCurrency(remainingIncome)}</div>
                 </CardContent>
               </Card>
-              <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
+              <Card className="bg-white/10 backdrop-blur-md border-transparent shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Savings Rate</CardTitle>
                   <BadgePercent className="h-4 w-4 text-muted-foreground" />

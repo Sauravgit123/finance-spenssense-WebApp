@@ -90,12 +90,12 @@ export default {
           },
         },
         'float-1': {
-            '0%, 100%': { transform: 'translate(-50%, -50%)' },
-            '50%': { transform: 'translate(-55%, -45%)' },
+            '0%, 100%': { transform: 'translate(0, 0)' },
+            '50%': { transform: 'translate(-5%, 5%)' },
         },
         'float-2': {
-            '0%, 100%': { transform: 'translate(33%, 33%)' },
-            '50%': { transform: 'translate(38%, 28%)' },
+            '0%, 100%': { transform: 'translate(0, 0)' },
+            '50%': { transform: 'translate(5%, -5%)' },
         },
       },
       animation: {
