@@ -62,7 +62,7 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="w-full max-w-sm bg-white/5 backdrop-blur-md border border-white/10 shadow-lg rounded-2xl">
+    <Card className="w-full max-w-sm bg-white/10 backdrop-blur-md border border-white/20 shadow-lg rounded-2xl">
       <CardHeader>
         <CardTitle className="text-2xl">Login</CardTitle>
         <CardDescription>
@@ -79,7 +79,7 @@ export default function LoginPage() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="name@example.com" {...field} />
+                    <Input placeholder="name@example.com" {...field} className="bg-white/5 border-white/20" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -92,20 +92,20 @@ export default function LoginPage() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input type="password" placeholder="••••••••" {...field} className="bg-white/5 border-white/20" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-gradient-to-r from-violet-600 to-sky-500 text-primary-foreground hover:shadow-lg hover:shadow-sky-500/20 transition-all" disabled={isLoading}>
               {isLoading ? 'Signing In...' : 'Sign In'}
             </Button>
           </form>
         </Form>
         <div className="mt-4 text-center text-sm">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="underline text-primary font-medium">
+          <Link href="/signup" className="underline text-sky-400 font-medium">
             Sign up
           </Link>
         </div>

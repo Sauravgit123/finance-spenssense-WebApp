@@ -148,7 +148,7 @@ export function DashboardContainer() {
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <Card className="bg-white/5 backdrop-blur-md border border-white/10 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
+              <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Income</CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -157,7 +157,7 @@ export function DashboardContainer() {
                   <div className="text-3xl font-bold">{formatCurrency(income)}</div>
                 </CardContent>
               </Card>
-              <Card className="bg-white/5 backdrop-blur-md border border-white/10 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
+              <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
@@ -166,16 +166,16 @@ export function DashboardContainer() {
                   <div className="text-3xl font-bold">{formatCurrency(totalSpent)}</div>
                 </CardContent>
               </Card>
-              <Card className="bg-white/5 backdrop-blur-md border border-white/10 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
+              <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Remaining</CardTitle>
+                  <CardTitle className="text-sm font-medium">Available Balance</CardTitle>
                   <WalletCards className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className={`text-3xl font-bold ${remainingIncome < 0 ? 'text-destructive' : ''}`}>{formatCurrency(remainingIncome)}</div>
                 </CardContent>
               </Card>
-              <Card className="bg-white/5 backdrop-blur-md border border-white/10 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
+              <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Savings Rate</CardTitle>
                   <BadgePercent className="h-4 w-4 text-muted-foreground" />
@@ -190,26 +190,23 @@ export function DashboardContainer() {
             <BudgetCategoryCard
               title="Needs"
               icon={<Home className="h-5 w-5 text-sky-400" />}
-              percentage={50}
               allocated={needsTotal}
               spent={needsSpent}
-              indicatorClassName="bg-sky-500"
+              color="hsl(var(--chart-1))"
             />
             <BudgetCategoryCard
               title="Wants"
               icon={<Sparkles className="h-5 w-5 text-violet-400" />}
-              percentage={30}
               allocated={wantsTotal}
               spent={wantsSpent}
-              indicatorClassName="bg-violet-500"
+              color="hsl(var(--chart-2))"
             />
             <BudgetCategoryCard
               title="Savings"
               icon={<PiggyBank className="h-5 w-5 text-emerald-400" />}
-              percentage={20}
               allocated={savingsTotal}
               spent={savingsSpent}
-              indicatorClassName="bg-emerald-500"
+              color="hsl(var(--chart-3))"
             />
           </div>
 

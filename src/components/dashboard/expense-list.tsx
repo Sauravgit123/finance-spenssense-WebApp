@@ -19,7 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import type { Expense } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Home, Sparkles, PiggyBank } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +40,25 @@ import { FirestorePermissionError } from '@/firebase/errors';
 interface ExpenseListProps {
   expenses: Expense[];
 }
+
+const categoryDetails = {
+  Needs: { 
+    icon: <Home className="h-4 w-4" />, 
+    badgeVariant: 'default' as const,
+    color: 'text-sky-400'
+  },
+  Wants: { 
+    icon: <Sparkles className="h-4 w-4" />,
+    badgeVariant: 'secondary' as const,
+    color: 'text-violet-400'
+  },
+  Savings: { 
+    icon: <PiggyBank className="h-4 w-4" />,
+    badgeVariant: 'outline' as const,
+    color: 'text-emerald-400'
+  },
+};
+
 
 export function ExpenseList({ expenses }: ExpenseListProps) {
   const { user } = useAuth();
@@ -63,19 +82,6 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
       month: 'short',
       day: 'numeric',
     });
-  };
-
-  const categoryBadgeVariant = (category: string) => {
-    switch (category) {
-      case 'Needs':
-        return 'default';
-      case 'Wants':
-        return 'secondary';
-      case 'Savings':
-        return 'outline';
-      default:
-        return 'default';
-    }
   };
 
   const handleDeleteRequest = (expense: Expense) => {
@@ -125,7 +131,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
 
   return (
     <>
-      <Card className="bg-white/5 backdrop-blur-md border border-white/10 shadow-lg rounded-2xl">
+      <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-lg rounded-2xl">
         <CardHeader>
           <CardTitle>Recent Expenses</CardTitle>
           <CardDescription>
@@ -135,7 +141,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow className="border-white/10">
+              <TableRow className="border-white/20">
                 <TableHead>Expense</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
@@ -148,17 +154,22 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
                 <TableRow>
                   <TableCell
                     colSpan={5}
-                    className="h-24 text-center border-white/10"
+                    className="h-24 text-center border-white/20"
                   >
                     No expenses added yet.
                   </TableCell>
                 </TableRow>
               ) : (
-                expenses.slice(0, 10).map((expense) => (
-                  <TableRow key={expense.id} className="border-white/10">
-                    <TableCell className="font-medium">{expense.name}</TableCell>
+                expenses.slice(0, 10).map((expense) => {
+                  const details = categoryDetails[expense.category as keyof typeof categoryDetails] || categoryDetails.Wants;
+                  return(
+                  <TableRow key={expense.id} className="border-white/20">
+                    <TableCell className="font-medium flex items-center">
+                      <span className={details.color}>{details.icon}</span>
+                      <span className="ml-2">{expense.name}</span>
+                    </TableCell>
                     <TableCell>
-                      <Badge variant={categoryBadgeVariant(expense.category)}>
+                      <Badge variant={details.badgeVariant}>
                         {expense.category}
                       </Badge>
                     </TableCell>
@@ -179,7 +190,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
+                )})
               )}
             </TableBody>
           </Table>
