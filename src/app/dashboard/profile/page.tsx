@@ -222,7 +222,7 @@ export default function ProfilePage() {
 
                 <div className="space-y-4 text-center">
                     <FormLabel className="font-semibold">Or choose a default avatar</FormLabel>
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 pt-2">
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-4 pt-2">
                         {defaultAvatars.map((url) => (
                         <div
                             key={url}
