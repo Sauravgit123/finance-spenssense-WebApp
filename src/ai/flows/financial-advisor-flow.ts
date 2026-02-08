@@ -17,12 +17,12 @@ const ExpenseInputSchema = z.object({
   category: z.enum(['Needs', 'Wants', 'Savings']).describe('The category of the expense.'),
 });
 
-export const FinancialAdvisorInputSchema = z.object({
+const FinancialAdvisorInputSchema = z.object({
   expenses: z.array(ExpenseInputSchema).describe('A list of recent expenses.'),
   income: z.number().describe("The user's monthly income."),
 });
 
-export const FinancialAdvisorOutputSchema = z.object({
+const FinancialAdvisorOutputSchema = z.object({
   tip: z.string().describe('A concise financial tip based on the user\'s spending.'),
 });
 
