@@ -33,7 +33,7 @@ const formSchema = z.object({
 });
 
 export default function ProfilePage() {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const db = useFirestore();
   const storage = useFirebaseStorage();
   const { toast } = useToast();
@@ -55,7 +55,7 @@ export default function ProfilePage() {
             setImagePreview(user.photoURL);
         }
     }
-  }, [user, form]);
+  }, [user]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -106,8 +106,6 @@ export default function ProfilePage() {
           });
           errorEmitter.emit('permission-error', permissionError);
         });
-
-      await refreshUser();
 
       toast({
         title: 'Profile updated',
