@@ -205,21 +205,21 @@ export function DashboardContainer() {
               icon={<Home className="h-5 w-5 text-sky-400" />}
               allocated={needsTotal}
               spent={needsSpent}
-              color="hsl(var(--chart-1))"
+              colorClass="bg-chart-1"
             />
             <BudgetCategoryCard
               title="Wants"
               icon={<Sparkles className="h-5 w-5 text-violet-400" />}
               allocated={wantsTotal}
               spent={wantsSpent}
-              color="hsl(var(--chart-2))"
+              colorClass="bg-chart-2"
             />
             <BudgetCategoryCard
               title="Savings"
               icon={<PiggyBank className="h-5 w-5 text-emerald-400" />}
               allocated={savingsTotal}
               spent={savingsSpent}
-              color="hsl(var(--chart-3))"
+              colorClass="bg-chart-3"
             />
           </div>
 
