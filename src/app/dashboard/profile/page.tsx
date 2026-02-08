@@ -55,7 +55,7 @@ export default function ProfilePage() {
             setImagePreview(user.photoURL);
         }
     }
-  }, [user]);
+  }, [user, form]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -147,14 +147,14 @@ export default function ProfilePage() {
                 
                 <FormItem className="flex flex-col items-center space-y-4 pt-6">
                   <FormLabel>Profile Picture</FormLabel>
-                  <Avatar className="h-32 w-32 cursor-pointer">
-                    <label htmlFor="profile-picture-upload" className="cursor-pointer rounded-full">
+                  <label htmlFor="profile-picture-upload" className="cursor-pointer rounded-full">
+                    <Avatar className="h-32 w-32">
                         <AvatarImage src={imagePreview || ''} alt={user?.displayName || ''} />
                         <AvatarFallback className="text-4xl bg-muted">
                             {getInitials(user?.displayName)}
                         </AvatarFallback>
-                    </label>
-                  </Avatar>
+                    </Avatar>
+                  </label>
                   <FormControl>
                     <Input 
                       id="profile-picture-upload"
