@@ -17,6 +17,7 @@ import { ExpenseBreakdownChart } from './expense-breakdown-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { AIAdvisorCard } from './ai-advisor-card';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -226,6 +227,7 @@ export function DashboardContainer() {
         </div>
 
         <div className="space-y-8">
+            <AIAdvisorCard expenses={expenses} income={income} />
             <AddExpenseForm />
             <ExpenseBreakdownChart expenses={expenses} />
         </div>
