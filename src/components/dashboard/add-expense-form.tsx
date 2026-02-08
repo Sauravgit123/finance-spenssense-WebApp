@@ -4,8 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '../auth-provider';
+import { useFirestore } from '@/firebase/provider';
+import { useAuth } from '@/firebase/auth-provider';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ const formSchema = z.object({
 
 export function AddExpenseForm() {
   const { user } = useAuth();
+  const db = useFirestore();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 

@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { useAuth } from './auth-provider';
+import { useAuth } from '@/firebase/auth-provider';
 import { SpendSenseLogo } from './logo';
 import { LogOut } from 'lucide-react';
 

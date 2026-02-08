@@ -30,9 +30,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useAuth } from '../auth-provider';
+import { useAuth } from '@/firebase/auth-provider';
 import { doc, deleteDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useFirestore } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 
 interface ExpenseListProps {
@@ -41,6 +41,7 @@ interface ExpenseListProps {
 
 export function ExpenseList({ expenses }: ExpenseListProps) {
   const { user } = useAuth();
+  const db = useFirestore();
   const { toast } = useToast();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);

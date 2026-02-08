@@ -3,8 +3,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, doc, onSnapshot, query, orderBy, setDoc } from 'firebase/firestore';
-import { useAuth } from '@/components/auth-provider';
-import { db } from '@/lib/firebase';
+import { useAuth } from '@/firebase/auth-provider';
+import { useFirestore } from '@/firebase/provider';
 import type { Expense, UserData } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BudgetCategoryCard } from './budget-category-card';
@@ -25,6 +25,7 @@ const formatCurrency = (amount: number) => {
 
 export function DashboardContainer() {
   const { user, loading } = useAuth();
+  const db = useFirestore();
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -34,7 +35,7 @@ export function DashboardContainer() {
   useEffect(() => {
     if (loading) return;
     if (!user) {
-      router.push('/login');
+      // AuthProvider handles redirect
       return;
     }
 
@@ -56,18 +57,23 @@ export function DashboardContainer() {
         setIncomeModalOpen(true);
       }
       setDataLoading(false);
+    }, (error) => {
+        console.error("Error fetching user data:", error);
+        setDataLoading(false);
     });
 
     const unsubscribeExpenses = onSnapshot(expensesQuery, (snapshot) => {
       const expensesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Expense[];
       setExpenses(expensesData);
+    }, (error) => {
+        console.error("Error fetching expenses:", error);
     });
 
     return () => {
       unsubscribeUser();
       unsubscribeExpenses();
     };
-  }, [user, loading, router]);
+  }, [user, loading, router, db]);
 
   const { needsTotal, wantsTotal, savingsTotal, needsSpent, wantsSpent, savingsSpent, totalSpent } = useMemo(() => {
     const income = userData?.income || 0;
