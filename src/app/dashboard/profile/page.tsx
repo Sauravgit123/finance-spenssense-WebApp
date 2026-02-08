@@ -5,9 +5,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { updateProfile } from 'firebase/auth';
 import { useAuth } from '@/firebase/auth-provider';
-import { useFirestore } from '@/firebase/provider';
+import { useFirestore, useFirebaseStorage } from '@/firebase/provider';
 import { doc, setDoc } from 'firebase/firestore';
-import { useState } from 'react';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useState, useEffect, ChangeEvent } from 'react';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
@@ -23,44 +24,75 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 const formSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  photoURL: z.string().url({ message: 'Please enter a valid URL.' }).or(z.literal('')),
 });
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const db = useFirestore();
+  const storage = useFirebaseStorage();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(user?.photoURL || null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       displayName: user?.displayName || '',
-      photoURL: user?.photoURL || '',
     },
   });
+
+  useEffect(() => {
+    if (user?.photoURL) {
+      setImagePreview(user.photoURL);
+    }
+  }, [user?.photoURL]);
+
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return 'U';
+    const names = name.split(' ');
+    if (names.length > 1 && names[names.length - 1]) {
+      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) return;
     setIsLoading(true);
 
     try {
-      // Update Firebase Auth profile
+      let newPhotoURL = user.photoURL;
+
+      if (imageFile) {
+        const fileRef = storageRef(storage, `profile-pictures/${user.uid}`);
+        await uploadBytes(fileRef, imageFile);
+        newPhotoURL = await getDownloadURL(fileRef);
+      }
+
       await updateProfile(user, {
         displayName: values.displayName,
-        photoURL: values.photoURL,
+        photoURL: newPhotoURL,
       });
 
-      // Update user document in Firestore
       const userDocRef = doc(db, 'users', user.uid);
       const updatedUserData = {
         displayName: values.displayName,
-        photoURL: values.photoURL,
+        photoURL: newPhotoURL,
       };
       setDoc(userDocRef, updatedUserData, { merge: true })
         .catch((serverError) => {
@@ -72,15 +104,18 @@ export default function ProfilePage() {
           errorEmitter.emit('permission-error', permissionError);
         });
 
+      await refreshUser();
+
       toast({
         title: 'Profile updated',
         description: 'Your profile has been updated successfully.',
       });
+      setImageFile(null);
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Uh oh! Something went wrong.',
-        description: error.message,
+        description: error.message || 'Could not update profile.',
       });
     } finally {
       setIsLoading(false);
@@ -102,12 +137,32 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle className="text-2xl">Your Profile</CardTitle>
             <CardDescription>
-              Update your personal information.
+              Update your personal information and profile picture.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                
+                <FormItem className="flex flex-col items-center space-y-4 pt-6">
+                  <FormLabel>Profile Picture</FormLabel>
+                  <Avatar className="h-32 w-32">
+                    <AvatarImage src={imagePreview || ''} alt={user?.displayName || ''} />
+                    <AvatarFallback className="text-4xl bg-muted">
+                        {getInitials(user?.displayName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <FormControl>
+                    <Input 
+                      type="file" 
+                      accept="image/png, image/jpeg"
+                      onChange={handleImageChange}
+                      className="max-w-xs file:text-foreground bg-white/5 border-white/20"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+
                 <FormField
                   control={form.control}
                   name="displayName"
@@ -121,19 +176,7 @@ export default function ProfilePage() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="photoURL"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Profile Picture URL</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com/image.png" {...field} className="bg-white/5 border-white/20"/>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                
                 <Button type="submit" className="w-full bg-gradient-to-r from-violet-600 to-sky-500 text-primary-foreground hover:shadow-lg hover:shadow-sky-500/20 transition-all" disabled={isLoading}>
                   {isLoading ? 'Saving...' : 'Save Changes'}
                 </Button>

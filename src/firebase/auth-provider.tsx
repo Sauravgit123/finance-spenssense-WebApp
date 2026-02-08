@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { useFirebaseAuth } from './provider';
 import { useRouter, usePathname } from 'next/navigation';
@@ -10,6 +10,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +39,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
   
+  const refreshUser = useCallback(async () => {
+    if (auth.currentUser) {
+      await auth.currentUser.reload();
+      // Create a new object to force a re-render in components using the user object
+      setUser({ ...auth.currentUser });
+    }
+  }, [auth]);
+
   if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
@@ -50,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider value={{ user, loading, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
