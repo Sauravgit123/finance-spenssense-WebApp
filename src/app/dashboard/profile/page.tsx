@@ -23,11 +23,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Upload } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ImageCropper } from '@/components/dashboard/image-cropper';
 import { defaultAvatars } from '@/lib/default-avatars';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 const formSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -165,7 +166,7 @@ export default function ProfilePage() {
         </Button>
       </div>
       <div className="flex justify-center">
-        <Card className="w-full max-w-4xl bg-white/10 backdrop-blur-md border border-white/20 shadow-lg rounded-2xl">
+        <Card className="w-full max-w-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-lg rounded-2xl">
           <CardHeader>
             <CardTitle className="text-2xl">Your Profile</CardTitle>
             <CardDescription>
@@ -175,75 +176,69 @@ export default function ProfilePage() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {/* Left Column: Avatar Preview & Upload */}
-                  <div className="md:col-span-1 flex flex-col items-center text-center space-y-4 pt-2">
-                    <FormLabel className="font-semibold">Profile Picture</FormLabel>
+                
+                <div className="flex flex-col items-center text-center space-y-4 pt-2">
                     <label htmlFor="profile-picture-upload" className="cursor-pointer rounded-full group relative">
-                      <Avatar className="h-40 w-40">
-                          <AvatarImage src={imagePreview || ''} alt={user?.displayName || ''} />
-                          <AvatarFallback className="text-5xl bg-muted">
-                              {getInitials(user?.displayName)}
-                          </AvatarFallback>
-                      </Avatar>
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-white text-sm font-medium">Change</span>
-                      </div>
+                        <Avatar className="h-40 w-40 border-4 border-white/10 shadow-lg">
+                            <AvatarImage src={imagePreview || ''} alt={user?.displayName || ''} />
+                            <AvatarFallback className="text-5xl bg-muted">
+                                {getInitials(user?.displayName)}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="text-center text-white">
+                                <Upload className="h-8 w-8 mx-auto" />
+                                <span className="text-sm font-medium">Change Photo</span>
+                            </div>
+                        </div>
                     </label>
                     <FormControl>
-                      <Input 
+                        <Input 
                         id="profile-picture-upload"
                         type="file" 
                         accept="image/png, image/jpeg"
                         onChange={handleImageChange}
                         className="sr-only"
                         onClick={(e: React.MouseEvent<HTMLInputElement>) => (e.currentTarget.value = '')}
-                      />
+                        />
                     </FormControl>
-                    <Button asChild variant="outline" size="sm">
-                         <label htmlFor="profile-picture-upload" className="cursor-pointer">
-                             Upload a Photo
-                         </label>
-                    </Button>
-                  </div>
+                </div>
 
-                  {/* Right Column: Name and Default Avatars */}
-                  <div className="md:col-span-2 space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="displayName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="John Doe" {...field} className="bg-white/5 border-white/20"/>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="space-y-4">
-                        <FormLabel>Or choose a default avatar</FormLabel>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-                            {defaultAvatars.map((url) => (
-                            <div
-                                key={url}
-                                onClick={() => handleDefaultAvatarSelect(url)}
-                                className={cn(
-                                "rounded-full p-1 cursor-pointer transition-all aspect-square",
-                                imagePreview === url && !imageFile ? "ring-2 ring-primary bg-primary/20" : "hover:scale-105"
-                                )}
-                            >
-                                <Avatar className="h-full w-full">
-                                <AvatarImage src={url} alt="Default Avatar" />
-                                <AvatarFallback>AV</AvatarFallback>
-                                </Avatar>
-                            </div>
-                            ))}
+                <FormField
+                    control={form.control}
+                    name="displayName"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                        <Input placeholder="John Doe" {...field} className="bg-white/5 border-white/20"/>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                
+                <Separator className="bg-white/10" />
+
+                <div className="space-y-4 text-center">
+                    <FormLabel className="font-semibold">Or choose a default avatar</FormLabel>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 pt-2">
+                        {defaultAvatars.map((url) => (
+                        <div
+                            key={url}
+                            onClick={() => handleDefaultAvatarSelect(url)}
+                            className={cn(
+                            "rounded-full p-1 cursor-pointer transition-all aspect-square ring-offset-background ring-offset-2",
+                            imagePreview === url && !imageFile ? "ring-2 ring-sky-400" : "hover:scale-105 hover:ring-1 hover:ring-sky-500/50"
+                            )}
+                        >
+                            <Avatar className="h-full w-full">
+                            <AvatarImage src={url} alt="Default Avatar" />
+                            <AvatarFallback>AV</AvatarFallback>
+                            </Avatar>
                         </div>
+                        ))}
                     </div>
-                  </div>
                 </div>
                 
                 <div className="flex justify-end pt-4 border-t border-white/20">
