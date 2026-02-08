@@ -53,6 +53,8 @@ export default function ProfilePage() {
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [selectedDefaultUrl, setSelectedDefaultUrl] = useState<string | null>(null);
 
+  // This is the critical fix: `useMemo` prevents the carousel options
+  // from being recreated on every render, which was causing the crash.
   const carouselOpts = useMemo(() => ({
     align: 'start' as const,
     loop: true,
@@ -72,7 +74,8 @@ export default function ProfilePage() {
             setImagePreview(user.photoURL);
         }
     }
-  }, [user, form]);
+    // Only re-run this effect if the user object itself changes.
+  }, [user, form.reset]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -89,12 +92,12 @@ export default function ProfilePage() {
   const onCropComplete = (blob: Blob) => {
     setImageFile(blob);
     setImagePreview(URL.createObjectURL(blob));
-    setSelectedDefaultUrl(null);
+    setSelectedDefaultUrl(null); // Deselect any default avatar
     setIsCropperOpen(false);
   };
   
   const handleDefaultAvatarSelect = (url: string) => {
-    setImageFile(null);
+    setImageFile(null); // A default avatar was chosen, so clear any uploaded file
     setImagePreview(url);
     setSelectedDefaultUrl(url);
   };
@@ -115,11 +118,13 @@ export default function ProfilePage() {
     try {
       let newPhotoURL = user.photoURL;
 
+      // Priority 1: A new file was uploaded and cropped
       if (imageFile) {
         const fileRef = storageRef(storage, `profile-pictures/${user.uid}`);
         await uploadBytes(fileRef, imageFile, { contentType: 'image/jpeg' });
         newPhotoURL = await getDownloadURL(fileRef);
       } 
+      // Priority 2: A new default avatar was selected
       else if (selectedDefaultUrl && selectedDefaultUrl !== user.photoURL) {
         newPhotoURL = selectedDefaultUrl;
       }
@@ -129,11 +134,13 @@ export default function ProfilePage() {
         photoURL: newPhotoURL,
       };
 
+      // Update auth profile first
       await updateProfile(user, {
         displayName: updatedUserData.displayName,
         photoURL: updatedUserData.photoURL,
       });
 
+      // Then update firestore document
       const userDocRef = doc(db, 'users', user.uid);
       await updateDoc(userDocRef, {
         displayName: updatedUserData.displayName,
@@ -142,10 +149,11 @@ export default function ProfilePage() {
         
       toast({
         title: 'Profile Updated!',
-        description: 'Your changes have been saved. The page will now reload.',
+        description: 'Your changes have been saved. Refreshing the page to see changes.',
       });
       
-      window.location.reload();
+      // Use a timeout to give the user time to read the toast
+      setTimeout(() => window.location.reload(), 2000);
 
     } catch (error: any) {
       console.error("Profile update failed:", error);
@@ -211,6 +219,7 @@ export default function ProfilePage() {
                         accept="image/png, image/jpeg"
                         onChange={handleImageChange}
                         className="sr-only"
+                        // This allows re-uploading the same file name
                         onClick={(e: React.MouseEvent<HTMLInputElement>) => (e.currentTarget.value = '')}
                         />
                     </FormControl>
@@ -233,7 +242,7 @@ export default function ProfilePage() {
                 <Separator className="bg-white/10" />
 
                 <div className="space-y-4 w-full">
-                    <FormLabel className="font-semibold text-center block">Or choose a default avatar</FormLabel>
+                    <FormLabel className="font-semibold text-center block">Or choose an avatar</FormLabel>
                     <Carousel
                         opts={carouselOpts}
                         className="w-full max-w-sm sm:max-w-md mx-auto"
