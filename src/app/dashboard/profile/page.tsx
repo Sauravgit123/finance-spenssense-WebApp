@@ -34,7 +34,7 @@ const formSchema = z.object({
 });
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const db = useFirestore();
   const storage = useFirebaseStorage();
   const { toast } = useToast();
@@ -93,56 +93,54 @@ export default function ProfilePage() {
     try {
       let newPhotoURL = user.photoURL;
 
-      // The slowest part is uploading the image. We have to wait for this.
+      // 1. Upload image if it exists (this can be slow)
       if (imageFile) {
         const fileRef = storageRef(storage, `profile-pictures/${user.uid}`);
         await uploadBytes(fileRef, imageFile, { contentType: 'image/jpeg' });
         newPhotoURL = await getDownloadURL(fileRef);
       }
       
-      // After upload, let other updates happen in the background without blocking the UI.
       const updatedUserData = {
         displayName: values.displayName,
         photoURL: newPhotoURL,
       };
 
-      // Update Firebase Auth user profile (don't await)
-      updateProfile(user, updatedUserData).catch((error) => {
-        console.error("Error updating auth profile", error);
-        toast({
-            variant: "destructive",
-            title: "Error updating profile.",
-            description: "There was a problem updating your authentication profile."
-        });
-      });
+      // 2. Update the user's auth profile
+      await updateProfile(user, updatedUserData);
 
-      // Update Firestore document (don't await)
+      // 3. Update the user's document in Firestore
       const userDocRef = doc(db, 'users', user.uid);
-      updateDoc(userDocRef, updatedUserData)
-        .catch((serverError) => {
-          const permissionError = new FirestorePermissionError({
-            path: userDocRef.path,
-            operation: 'update',
-            requestResourceData: updatedUserData,
-          });
-          errorEmitter.emit('permission-error', permissionError);
+      await updateDoc(userDocRef, updatedUserData).catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: userDocRef.path,
+          operation: 'update',
+          requestResourceData: updatedUserData,
         });
+        throw permissionError;
+      });
         
-      // The onAuthStateChanged listener in AuthProvider will eventually update the UI.
+      // 4. Manually refresh the user state to reflect changes immediately
+      await refreshUser();
+      
       toast({
-        title: 'Profile update started!',
-        description: 'Your changes are being saved in the background.',
+        title: 'Profile Updated!',
+        description: 'Your changes have been saved successfully.',
       });
       setImageFile(null);
-      setIsLoading(false); // Unblock the UI immediately
 
     } catch (error: any) {
-      // This will now primarily catch errors from the image upload.
-      toast({
-        variant: 'destructive',
-        title: 'Uh oh! Image upload failed.',
-        description: error.message || 'Could not upload your profile picture.',
-      });
+      // This will catch any error from the whole process
+      if (error instanceof FirestorePermissionError) {
+        errorEmitter.emit('permission-error', error);
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Uh oh! Something went wrong.',
+          description: error.message || 'Could not save your profile.',
+        });
+      }
+    } finally {
+      // 5. Stop the loading indicator
       setIsLoading(false);
     }
   }
