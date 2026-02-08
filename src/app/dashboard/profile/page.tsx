@@ -36,6 +36,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { Skeleton } from '@/components/ui/skeleton';
 
 const formSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -53,19 +54,17 @@ export default function ProfilePage() {
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [selectedDefaultUrl, setSelectedDefaultUrl] = useState<string | null>(null);
 
-  // This is the critical fix: `useMemo` prevents the carousel options
-  // from being recreated on every render, which was causing the crash.
-  const carouselOpts = useMemo(() => ({
-    align: 'start' as const,
-    loop: true,
-  }), []);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       displayName: '',
     },
   });
+
+  const carouselOpts = useMemo(() => ({
+    align: 'start' as const,
+    loop: true,
+  }), []);
 
   useEffect(() => {
     if (user) {
@@ -74,8 +73,7 @@ export default function ProfilePage() {
             setImagePreview(user.photoURL);
         }
     }
-    // Only re-run this effect if the user object itself changes.
-  }, [user, form.reset]);
+  }, [user, form]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -178,7 +176,7 @@ export default function ProfilePage() {
         />
       )}
        <div className="mb-6">
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" type="button">
           <Link href="/dashboard">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
@@ -259,14 +257,16 @@ export default function ProfilePage() {
                                     >
                                         <Avatar className="h-full w-full">
                                             <AvatarImage src={url} alt={`Default Avatar ${index + 1}`} />
-                                            <AvatarFallback>AV</AvatarFallback>
+                                            <AvatarFallback>
+                                              <Skeleton className="h-full w-full rounded-full" />
+                                            </AvatarFallback>
                                         </Avatar>
                                     </div>
                                 </CarouselItem>
                             ))}
                         </CarouselContent>
-                        <CarouselPrevious className="hidden sm:flex" />
-                        <CarouselNext className="hidden sm:flex" />
+                        <CarouselPrevious type="button" className="hidden sm:flex" />
+                        <CarouselNext type="button" className="hidden sm:flex" />
                     </Carousel>
                 </div>
                 
