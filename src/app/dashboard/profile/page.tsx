@@ -46,6 +46,13 @@ export default function ProfilePage() {
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [selectedDefaultUrl, setSelectedDefaultUrl] = useState<string | null>(null);
 
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      displayName: '',
+    },
+  });
+
   useEffect(() => {
     if (user) {
         form.reset({ displayName: user.displayName || '' });
