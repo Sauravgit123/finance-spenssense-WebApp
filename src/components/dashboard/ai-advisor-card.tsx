@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Sparkles, User } from 'lucide-react';
-import { getFinancialAdvice } from '@/ai/flows/financial-advisor-flow';
 import type { Expense } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback } from '../ui/avatar';
@@ -47,7 +46,29 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
         category,
       }));
 
-      const result = await getFinancialAdvice({ expenses: expenseDataForAI, income, query: currentInput });
+      const response = await fetch('/api/financial-advisor', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          expenses: expenseDataForAI,
+          income,
+          query: currentInput,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'An unknown error occurred.' }));
+        throw new Error(errorData.error || 'Failed to get a response from the server.');
+      }
+
+      const result = await response.json();
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
       const aiMessage: Message = { sender: 'ai', text: result.answer };
       setMessages(prev => [...prev, aiMessage]);
 
@@ -55,7 +76,7 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
       console.error("AI Advisor Error:", e);
       const errorMessage = 'Sorry, I couldn\'t generate a response right now. Please try again later.';
       
-      setMessages(prev => prev.slice(0, -1));
+      setMessages(prev => prev.filter(msg => msg !== userMessage));
       setError(errorMessage);
       setInput(currentInput); 
     } finally {

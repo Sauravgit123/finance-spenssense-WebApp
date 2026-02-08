@@ -3,9 +3,7 @@
 /**
  * @fileOverview An AI-powered financial advisor chat flow.
  *
- * - getFinancialAdvice - A function that analyzes expenses and a user query to provide financial advice.
- * - FinancialAdvisorInput - The input type for the getFinancialAdvice function.
- * - FinancialAdvisorOutput - The return type for the getFinancialAdvice function.
+ * This file defines the Genkit flow for the financial advisor.
  */
 
 import { ai } from '@/ai/genkit';
@@ -27,19 +25,18 @@ const FinancialAdvisorOutputSchema = z.object({
   answer: z.string().describe('A concise and helpful answer to the user\'s question based on their spending.'),
 });
 
-export type FinancialAdvisorInput = z.infer<typeof FinancialAdvisorInputSchema>;
-export type FinancialAdvisorOutput = z.infer<typeof FinancialAdvisorOutputSchema>;
-
-
-export async function getFinancialAdvice(input: FinancialAdvisorInput): Promise<FinancialAdvisorOutput> {
-  return financialAdvisorFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'financialAdvisorPrompt',
-  input: { schema: FinancialAdvisorInputSchema },
-  output: { schema: FinancialAdvisorOutputSchema },
-  prompt: `You are SpendSense, a friendly and insightful financial advisor. Your goal is to help the user manage their money better by answering their questions.
+export const financialAdvisorFlow = ai.defineFlow(
+  {
+    name: 'financialAdvisorFlow',
+    inputSchema: FinancialAdvisorInputSchema,
+    outputSchema: FinancialAdvisorOutputSchema,
+  },
+  async (input) => {
+    const prompt = ai.definePrompt({
+      name: 'financialAdvisorPrompt',
+      input: { schema: FinancialAdvisorInputSchema },
+      output: { schema: FinancialAdvisorOutputSchema },
+      prompt: `You are SpendSense, a friendly and insightful financial advisor. Your goal is to help the user manage their money better by answering their questions.
 
 Analyze the following financial data:
 - User's monthly income: \${{{income}}}
@@ -52,15 +49,8 @@ Based on this data, answer the user's question clearly and concisely. Address th
 
 User's Question: "{{query}}"
 `,
-});
+    });
 
-const financialAdvisorFlow = ai.defineFlow(
-  {
-    name: 'financialAdvisorFlow',
-    inputSchema: FinancialAdvisorInputSchema,
-    outputSchema: FinancialAdvisorOutputSchema,
-  },
-  async (input) => {
     const { output } = await prompt(input);
     return output!;
   }
