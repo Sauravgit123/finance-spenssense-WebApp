@@ -116,7 +116,6 @@ export default function ProfilePage() {
       });
       
       // 4. Force a reload to ensure UI is correctly updated with new user info.
-      // This is a robust way to fix the hanging/stale state issue.
       window.location.reload();
 
     } catch (error: any) {
@@ -126,7 +125,8 @@ export default function ProfilePage() {
         title: 'Uh oh! Something went wrong.',
         description: error.message || 'Could not save your profile.',
       });
-      // On error, ensure the loading spinner is turned off.
+    } finally {
+      // This block GUARANTEES that the loading state is reset, preventing a stuck UI.
       setIsLoading(false);
     }
   }
