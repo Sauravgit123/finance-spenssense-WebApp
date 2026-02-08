@@ -36,7 +36,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'api.dicebear.com',
+        hostname: 'avatar.iran.liara.run',
         port: '',
         pathname: '/**',
       },
