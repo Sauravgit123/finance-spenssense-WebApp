@@ -17,15 +17,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const auth = useFirebaseAuth();
-  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // This version state is used to force re-renders when the user object is updated
+  // in a way that doesn't trigger onAuthStateChanged (e.g., profile updates).
+  const [, setVersion] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
       setLoading(false);
+      // Force a re-render to ensure consumers get the latest user object from auth.currentUser
+      setVersion(v => v + 1); 
       if (!user && !['/login', '/signup'].includes(pathname)) {
         router.push('/login');
       }
@@ -34,19 +37,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [auth, router, pathname]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await signOut(auth);
     router.push('/login');
-  };
+    // onAuthStateChanged will handle re-rendering
+  }, [auth, router]);
   
   const refreshUser = useCallback(async () => {
     const currentUser = auth.currentUser;
     if (currentUser) {
       await currentUser.reload();
-      // Create a new object to ensure React state detects the change
-      setUser({ ...currentUser });
+      // Force a re-render to make the updated user data available
+      setVersion(v => v + 1);
     }
   }, [auth]);
+
+  // By getting the user directly from the auth instance, we ensure we always have the
+  // "live" user object, preventing stale data and issues with corrupted state.
+  const user = auth.currentUser;
 
   if (loading) {
     return (
