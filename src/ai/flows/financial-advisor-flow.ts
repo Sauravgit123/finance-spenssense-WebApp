@@ -1,11 +1,11 @@
 'use server';
 
 /**
- * @fileOverview An AI-powered financial advisor flow.
+ * @fileOverview An AI-powered financial advisor chat flow.
  *
- * - getFinancialTip - A function that analyzes expenses and provides a financial tip.
- * - FinancialAdvisorInput - The input type for the getFinancialTip function.
- * - FinancialAdvisorOutput - The return type for the getFinancialTip function.
+ * - getFinancialAdvice - A function that analyzes expenses and a user query to provide financial advice.
+ * - FinancialAdvisorInput - The input type for the getFinancialAdvice function.
+ * - FinancialAdvisorOutput - The return type for the getFinancialAdvice function.
  */
 
 import { ai } from '@/ai/genkit';
@@ -20,17 +20,18 @@ const ExpenseInputSchema = z.object({
 const FinancialAdvisorInputSchema = z.object({
   expenses: z.array(ExpenseInputSchema).describe('A list of recent expenses.'),
   income: z.number().describe("The user's monthly income."),
+  query: z.string().describe("The user's financial question."),
 });
 
 const FinancialAdvisorOutputSchema = z.object({
-  tip: z.string().describe('A concise financial tip based on the user\'s spending.'),
+  answer: z.string().describe('A concise and helpful answer to the user\'s question based on their spending.'),
 });
 
 export type FinancialAdvisorInput = z.infer<typeof FinancialAdvisorInputSchema>;
 export type FinancialAdvisorOutput = z.infer<typeof FinancialAdvisorOutputSchema>;
 
 
-export async function getFinancialTip(input: FinancialAdvisorInput): Promise<FinancialAdvisorOutput> {
+export async function getFinancialAdvice(input: FinancialAdvisorInput): Promise<FinancialAdvisorOutput> {
   return financialAdvisorFlow(input);
 }
 
@@ -38,16 +39,18 @@ const prompt = ai.definePrompt({
   name: 'financialAdvisorPrompt',
   input: { schema: FinancialAdvisorInputSchema },
   output: { schema: FinancialAdvisorOutputSchema },
-  prompt: `You are a friendly and insightful financial advisor named SpendSense. Your goal is to help the user manage their money better.
+  prompt: `You are SpendSense, a friendly and insightful financial advisor. Your goal is to help the user manage their money better by answering their questions.
 
-Analyze the following list of recent expenses and the user's monthly income.
+Analyze the following financial data:
 - User's monthly income: \${{{income}}}
-- Expenses:
+- Recent Expenses:
 {{#each expenses}}
   - {{name}}: \${{amount}} (Category: {{category}})
 {{/each}}
 
-Based on this data, provide one concise, actionable, and encouraging tip to help the user improve their spending habits or savings. Address the user directly. If there are no expenses, provide a general welcome tip about setting up their budget. Keep the tip to 2-3 sentences.
+Based on this data, answer the user's question clearly and concisely. Address the user directly in a helpful and encouraging tone. If the question is not related to finance, gently guide them back to financial topics.
+
+User's Question: "{{query}}"
 `,
 });
 
