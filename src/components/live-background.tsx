@@ -29,7 +29,7 @@ const generateIcons = (): IconDetail[] => {
     icons.push({
       id: i,
       Icon: type.Icon,
-      className: cn('absolute opacity-25 blur-sm', type.color),
+      className: cn('absolute opacity-40 blur', type.color),
       style: {
         left: `${Math.random() * 100}vw`,
         top: '110vh',
