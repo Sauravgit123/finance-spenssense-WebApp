@@ -32,7 +32,7 @@ const formSchema = z.object({
 });
 
 export default function ProfilePage() {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const db = useFirestore();
   const storage = useFirebaseStorage();
   const { toast } = useToast();
@@ -110,14 +110,14 @@ export default function ProfilePage() {
       const userDocRef = doc(db, 'users', user.uid);
       await updateDoc(userDocRef, updatedUserData);
         
-      // 4. Manually refresh the user state to reflect changes immediately
-      await refreshUser();
-      
       toast({
         title: 'Profile Updated!',
-        description: 'Your changes have been saved successfully.',
+        description: 'Your changes have been saved. The page will now reload.',
       });
-      setImageFile(null);
+      
+      // 4. Force a reload to ensure UI is correctly updated with new user info.
+      // This is a robust way to fix the hanging/stale state issue.
+      window.location.reload();
 
     } catch (error: any) {
       console.error("Profile update failed:", error);
@@ -126,8 +126,7 @@ export default function ProfilePage() {
         title: 'Uh oh! Something went wrong.',
         description: error.message || 'Could not save your profile.',
       });
-    } finally {
-      // 5. Stop the loading indicator
+      // On error, ensure the loading spinner is turned off.
       setIsLoading(false);
     }
   }
