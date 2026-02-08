@@ -54,10 +54,6 @@ export function LiveBackground() {
     setIcons(generateIcons());
   }, []);
 
-  if (icons.length === 0) {
-    return null;
-  }
-
   return (
     <div className="fixed inset-0 -z-10 h-full w-full overflow-hidden bg-gradient-to-br from-slate-950 to-gray-900 pointer-events-none">
       {icons.map(({ id, Icon, className, style }) => (
