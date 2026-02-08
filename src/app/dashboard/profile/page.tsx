@@ -29,6 +29,13 @@ import { ImageCropper } from '@/components/dashboard/image-cropper';
 import { defaultAvatars } from '@/lib/default-avatars';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 const formSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -220,25 +227,35 @@ export default function ProfilePage() {
                 
                 <Separator className="bg-white/10" />
 
-                <div className="space-y-4 text-center">
-                    <FormLabel className="font-semibold">Or choose a default avatar</FormLabel>
-                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-4 pt-2">
-                        {defaultAvatars.map((url) => (
-                        <div
-                            key={url}
-                            onClick={() => handleDefaultAvatarSelect(url)}
-                            className={cn(
-                            "rounded-full p-1 cursor-pointer transition-all aspect-square ring-offset-background ring-offset-2",
-                            imagePreview === url && !imageFile ? "ring-2 ring-sky-400" : "hover:scale-105 hover:ring-1 hover:ring-sky-500/50"
-                            )}
-                        >
-                            <Avatar className="h-full w-full">
-                            <AvatarImage src={url} alt="Default Avatar" />
-                            <AvatarFallback>AV</AvatarFallback>
-                            </Avatar>
-                        </div>
-                        ))}
-                    </div>
+                <div className="space-y-4 w-full">
+                    <FormLabel className="font-semibold text-center block">Or choose a default avatar</FormLabel>
+                    <Carousel
+                        opts={{
+                            align: "start",
+                        }}
+                        className="w-full max-w-sm sm:max-w-md mx-auto"
+                    >
+                        <CarouselContent className="-ml-2">
+                            {defaultAvatars.map((url, index) => (
+                                <CarouselItem key={index} className="pl-2 basis-1/4 sm:basis-1/5">
+                                    <div
+                                        onClick={() => handleDefaultAvatarSelect(url)}
+                                        className={cn(
+                                        "rounded-full p-1 cursor-pointer transition-all aspect-square ring-offset-background ring-offset-slate-900 ring-offset-2",
+                                        imagePreview === url && !imageFile ? "ring-2 ring-sky-400" : "hover:ring-1 hover:ring-sky-500/50"
+                                        )}
+                                    >
+                                        <Avatar className="h-full w-full">
+                                            <AvatarImage src={url} alt={`Default Avatar ${index + 1}`} />
+                                            <AvatarFallback>AV</AvatarFallback>
+                                        </Avatar>
+                                    </div>
+                                </CarouselItem>
+                            ))}
+                        </CarouselContent>
+                        <CarouselPrevious className="hidden sm:flex" />
+                        <CarouselNext className="hidden sm:flex" />
+                    </Carousel>
                 </div>
                 
                 <div className="flex justify-end pt-4 border-t border-white/20">
