@@ -30,9 +30,13 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
 
       const result = await getFinancialTip({ expenses: expenseDataForAI, income });
       setTip(result.tip);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      setError('Sorry, I couldn\'t generate a tip right now. Please try again later.');
+      if (e.message && (e.message.includes('API key') || e.message.includes('permission'))) {
+        setError('Your Gemini API key is missing or invalid. Please add it to your .env file to use the AI advisor.');
+      } else {
+        setError('Sorry, I couldn\'t generate a tip right now. Please try again later.');
+      }
       setTip('Click the button to get a personalized financial tip based on your spending!');
     } finally {
       setIsLoading(false);
