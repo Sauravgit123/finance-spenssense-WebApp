@@ -27,19 +27,22 @@ import { ArrowLeft } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { ImageCropper } from '@/components/dashboard/image-cropper';
 
 const formSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
 });
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const db = useFirestore();
   const storage = useFirebaseStorage();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | Blob | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(user?.photoURL || null);
+  const [imageToCrop, setImageToCrop] = useState<string>('');
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -60,9 +63,18 @@ export default function ProfilePage() {
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageToCrop(reader.result as string);
+        setIsCropperOpen(true);
+      };
+      reader.readAsDataURL(file);
     }
+  };
+
+  const onCropComplete = (blob: Blob) => {
+    setImageFile(blob);
+    setImagePreview(URL.createObjectURL(blob));
   };
 
   const getInitials = (name: string | null | undefined) => {
@@ -83,7 +95,7 @@ export default function ProfilePage() {
 
       if (imageFile) {
         const fileRef = storageRef(storage, `profile-pictures/${user.uid}`);
-        await uploadBytes(fileRef, imageFile);
+        await uploadBytes(fileRef, imageFile, { contentType: 'image/jpeg' });
         newPhotoURL = await getDownloadURL(fileRef);
       }
 
@@ -107,6 +119,8 @@ export default function ProfilePage() {
           errorEmitter.emit('permission-error', permissionError);
         });
 
+      await refreshUser(); // Refresh user state to get new photoURL
+
       toast({
         title: 'Profile updated',
         description: 'Your profile has been updated successfully.',
@@ -125,6 +139,14 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto p-4 md:p-8">
+       {isCropperOpen && (
+        <ImageCropper
+          isOpen={isCropperOpen}
+          onClose={() => setIsCropperOpen(false)}
+          image={imageToCrop}
+          onCropComplete={onCropComplete}
+        />
+      )}
        <div className="mb-6">
         <Button asChild variant="outline">
           <Link href="/dashboard">
@@ -162,6 +184,7 @@ export default function ProfilePage() {
                       accept="image/png, image/jpeg"
                       onChange={handleImageChange}
                       className="sr-only"
+                      onClick={(e: React.MouseEvent<HTMLInputElement>) => (e.currentTarget.value = '')}
                     />
                   </FormControl>
                    <Button asChild variant="outline" size="sm">
