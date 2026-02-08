@@ -34,7 +34,7 @@ const formSchema = z.object({
 });
 
 export default function ProfilePage() {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const db = useFirestore();
   const storage = useFirebaseStorage();
   const { toast } = useToast();
@@ -93,22 +93,31 @@ export default function ProfilePage() {
     try {
       let newPhotoURL = user.photoURL;
 
+      // The slowest part is uploading the image. We have to wait for this.
       if (imageFile) {
         const fileRef = storageRef(storage, `profile-pictures/${user.uid}`);
         await uploadBytes(fileRef, imageFile, { contentType: 'image/jpeg' });
         newPhotoURL = await getDownloadURL(fileRef);
       }
-
-      await updateProfile(user, {
-        displayName: values.displayName,
-        photoURL: newPhotoURL,
-      });
-
-      const userDocRef = doc(db, 'users', user.uid);
+      
+      // After upload, let other updates happen in the background without blocking the UI.
       const updatedUserData = {
         displayName: values.displayName,
         photoURL: newPhotoURL,
       };
+
+      // Update Firebase Auth user profile (don't await)
+      updateProfile(user, updatedUserData).catch((error) => {
+        console.error("Error updating auth profile", error);
+        toast({
+            variant: "destructive",
+            title: "Error updating profile.",
+            description: "There was a problem updating your authentication profile."
+        });
+      });
+
+      // Update Firestore document (don't await)
+      const userDocRef = doc(db, 'users', user.uid);
       updateDoc(userDocRef, updatedUserData)
         .catch((serverError) => {
           const permissionError = new FirestorePermissionError({
@@ -118,21 +127,22 @@ export default function ProfilePage() {
           });
           errorEmitter.emit('permission-error', permissionError);
         });
-
-      await refreshUser(); // Refresh user state to get new photoURL
-
+        
+      // The onAuthStateChanged listener in AuthProvider will eventually update the UI.
       toast({
-        title: 'Profile updated',
-        description: 'Your profile has been updated successfully.',
+        title: 'Profile update started!',
+        description: 'Your changes are being saved in the background.',
       });
       setImageFile(null);
+      setIsLoading(false); // Unblock the UI immediately
+
     } catch (error: any) {
+      // This will now primarily catch errors from the image upload.
       toast({
         variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
-        description: error.message || 'Could not update profile.',
+        title: 'Uh oh! Image upload failed.',
+        description: error.message || 'Could not upload your profile picture.',
       });
-    } finally {
       setIsLoading(false);
     }
   }
