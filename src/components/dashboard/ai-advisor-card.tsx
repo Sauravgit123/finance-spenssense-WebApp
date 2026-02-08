@@ -67,7 +67,7 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
   };
 
   return (
-    <Card className="bg-gradient-to-br from-violet-600/20 to-sky-500/20 backdrop-blur-md border border-white/10 shadow-lg rounded-2xl flex flex-col h-full">
+    <Card className="bg-gradient-to-br from-violet-600/20 to-sky-500/20 backdrop-blur-md border border-white/10 shadow-lg rounded-2xl flex flex-col h-[550px]">
       <CardHeader>
         <div className="flex items-center gap-3">
           <Sparkles className="h-6 w-6 text-yellow-300" />
@@ -75,7 +75,7 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
         </div>
         <CardDescription className="text-slate-300">Ask me anything about your spending.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col flex-1 gap-4">
+      <CardContent className="flex flex-col flex-1 gap-4 overflow-hidden">
         <ScrollArea className="flex-1 pr-4 -mr-4">
             <div className="space-y-4">
             {messages.map((message, index) => (
