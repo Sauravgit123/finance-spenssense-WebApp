@@ -26,6 +26,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ImageCropper } from '@/components/dashboard/image-cropper';
+import { defaultAvatars } from '@/lib/default-avatars';
+import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 const formSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -41,13 +44,7 @@ export default function ProfilePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(user?.photoURL || null);
   const [imageToCrop, setImageToCrop] = useState<string>('');
   const [isCropperOpen, setIsCropperOpen] = useState(false);
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      displayName: user?.displayName || '',
-    },
-  });
+  const [selectedDefaultUrl, setSelectedDefaultUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -73,6 +70,13 @@ export default function ProfilePage() {
   const onCropComplete = (blob: Blob) => {
     setImageFile(blob);
     setImagePreview(URL.createObjectURL(blob));
+    setSelectedDefaultUrl(null);
+  };
+  
+  const handleDefaultAvatarSelect = (url: string) => {
+    setImageFile(null);
+    setImagePreview(url);
+    setSelectedDefaultUrl(url);
   };
 
   const getInitials = (name: string | null | undefined) => {
@@ -91,11 +95,15 @@ export default function ProfilePage() {
     try {
       let newPhotoURL = user.photoURL;
 
-      // 1. Upload image if it exists
+      // 1. Upload image if a new one was cropped
       if (imageFile) {
         const fileRef = storageRef(storage, `profile-pictures/${user.uid}`);
         await uploadBytes(fileRef, imageFile, { contentType: 'image/jpeg' });
         newPhotoURL = await getDownloadURL(fileRef);
+      } 
+      // 2. Else, if a default avatar was selected, use its URL.
+      else if (selectedDefaultUrl && selectedDefaultUrl !== user.photoURL) {
+        newPhotoURL = selectedDefaultUrl;
       }
       
       const updatedUserData = {
@@ -103,10 +111,10 @@ export default function ProfilePage() {
         photoURL: newPhotoURL,
       };
 
-      // 2. Update the user's auth profile
+      // 3. Update the user's auth profile
       await updateProfile(user, updatedUserData);
 
-      // 3. Update the user's document in Firestore
+      // 4. Update the user's document in Firestore
       const userDocRef = doc(db, 'users', user.uid);
       await updateDoc(userDocRef, updatedUserData);
         
@@ -115,7 +123,7 @@ export default function ProfilePage() {
         description: 'Your changes have been saved. The page will now reload.',
       });
       
-      // 4. Force a reload to ensure UI is correctly updated with new user info.
+      // 5. Force a reload to ensure UI is correctly updated with new user info.
       window.location.reload();
 
     } catch (error: any) {
@@ -126,7 +134,6 @@ export default function ProfilePage() {
         description: error.message || 'Could not save your profile.',
       });
     } finally {
-      // This block GUARANTEES that the loading state is reset, preventing a stuck UI.
       setIsLoading(false);
     }
   }
@@ -188,6 +195,32 @@ export default function ProfilePage() {
                    </Button>
                   <FormMessage />
                 </FormItem>
+
+                <div className="relative py-4">
+                  <Separator />
+                  <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-sm text-muted-foreground">OR</span>
+                </div>
+
+                <div className="space-y-4 text-center">
+                    <FormLabel>Select a default avatar</FormLabel>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 max-w-md mx-auto">
+                        {defaultAvatars.map((url) => (
+                        <div
+                            key={url}
+                            onClick={() => handleDefaultAvatarSelect(url)}
+                            className={cn(
+                            "rounded-full p-1 cursor-pointer transition-all",
+                            imagePreview === url && !imageFile ? "ring-2 ring-primary bg-primary/20" : "hover:scale-105"
+                            )}
+                        >
+                            <Avatar className="h-20 w-20 sm:h-24 sm:w-24 mx-auto">
+                            <AvatarImage src={url} alt="Default Avatar" />
+                            <AvatarFallback>AV</AvatarFallback>
+                            </Avatar>
+                        </div>
+                        ))}
+                    </div>
+                </div>
 
                 <FormField
                   control={form.control}
