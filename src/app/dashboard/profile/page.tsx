@@ -6,7 +6,7 @@ import * as z from 'zod';
 import { updateProfile } from 'firebase/auth';
 import { useAuth } from '@/firebase/auth-provider';
 import { useFirestore, useFirebaseStorage } from '@/firebase/provider';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useState, useEffect, ChangeEvent } from 'react';
 import Link from 'next/link';
@@ -109,7 +109,7 @@ export default function ProfilePage() {
         displayName: values.displayName,
         photoURL: newPhotoURL,
       };
-      setDoc(userDocRef, updatedUserData, { merge: true })
+      updateDoc(userDocRef, updatedUserData)
         .catch((serverError) => {
           const permissionError = new FirestorePermissionError({
             path: userDocRef.path,

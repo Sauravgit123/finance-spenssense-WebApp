@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { useAuth } from '@/firebase/auth-provider';
 import { Button } from '@/components/ui/button';
@@ -62,7 +62,7 @@ export function IncomeSetter({ isOpen, setIsOpen, currentIncome }: IncomeSetterP
     const userDocRef = doc(db, 'users', user.uid);
     const newIncome = { income: values.income };
     
-    setDoc(userDocRef, newIncome, { merge: true })
+    updateDoc(userDocRef, newIncome)
       .then(() => {
         toast({
           title: 'Success!',
