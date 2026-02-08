@@ -15,7 +15,8 @@ import { IncomeSetter } from './income-setter';
 import { Button } from '../ui/button';
 import { ExpenseBreakdownChart } from './expense-breakdown-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -32,8 +33,7 @@ export function DashboardContainer() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
-  const { toast } = useToast();
-
+  
   useEffect(() => {
     if (loading) return;
     if (!user) {
@@ -60,11 +60,11 @@ export function DashboardContainer() {
       }
       setDataLoading(false);
     }, (error) => {
-        toast({
-          variant: "destructive",
-          title: "Error fetching user data",
-          description: "There was a problem loading your profile. Please try refreshing.",
+        const permissionError = new FirestorePermissionError({
+          path: userDocRef.path,
+          operation: 'get',
         });
+        errorEmitter.emit('permission-error', permissionError);
         setDataLoading(false);
     });
 
@@ -72,18 +72,18 @@ export function DashboardContainer() {
       const expensesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Expense[];
       setExpenses(expensesData);
     }, (error) => {
-        toast({
-            variant: "destructive",
-            title: "Error fetching expenses",
-            description: "There was a problem loading your expenses. Please try refreshing.",
+        const permissionError = new FirestorePermissionError({
+          path: expensesColRef.path,
+          operation: 'list',
         });
+        errorEmitter.emit('permission-error', permissionError);
     });
 
     return () => {
       unsubscribeUser();
       unsubscribeExpenses();
     };
-  }, [user, loading, router, db, toast]);
+  }, [user, loading, router, db]);
 
   const { needsTotal, wantsTotal, savingsTotal, needsSpent, wantsSpent, savingsSpent, totalSpent } = useMemo(() => {
     const income = userData?.income || 0;

@@ -26,6 +26,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const formSchema = z.object({
   income: z.preprocess(
@@ -57,23 +59,28 @@ export function IncomeSetter({ isOpen, setIsOpen, currentIncome }: IncomeSetterP
     if (!user) return;
     setIsLoading(true);
 
-    try {
-      const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, { income: values.income }, { merge: true });
-      toast({
-        title: 'Success!',
-        description: 'Your monthly income has been updated.',
+    const userDocRef = doc(db, 'users', user.uid);
+    const newIncome = { income: values.income };
+    
+    setDoc(userDocRef, newIncome, { merge: true })
+      .then(() => {
+        toast({
+          title: 'Success!',
+          description: 'Your monthly income has been updated.',
+        });
+        setIsOpen(false);
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: userDocRef.path,
+          operation: 'update',
+          requestResourceData: newIncome,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
-      setIsOpen(false);
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error updating income',
-        description: error.message || 'Could not save your income. Please try again.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
   }
 
   return (

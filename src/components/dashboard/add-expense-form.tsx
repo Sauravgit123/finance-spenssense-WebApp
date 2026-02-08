@@ -7,6 +7,8 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { useAuth } from '@/firebase/auth-provider';
 import { useState } from 'react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -56,26 +58,31 @@ export function AddExpenseForm() {
     if (!user) return;
     setIsLoading(true);
 
-    try {
-      const expensesColRef = collection(db, 'users', user.uid, 'expenses');
-      await addDoc(expensesColRef, {
+    const expensesColRef = collection(db, 'users', user.uid, 'expenses');
+    const newExpense = {
         ...values,
         createdAt: serverTimestamp(),
+      };
+
+    addDoc(expensesColRef, newExpense)
+      .then(() => {
+        toast({
+          title: 'Expense Added',
+          description: `${values.name} has been added to your ${values.category}.`,
+        });
+        form.reset();
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: expensesColRef.path,
+          operation: 'create',
+          requestResourceData: newExpense,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
-      toast({
-        title: 'Expense Added',
-        description: `${values.name} has been added to your ${values.category}.`,
-      });
-      form.reset();
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error adding expense',
-        description: error.message || 'Could not save your expense. Please try again.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
   }
 
   return (

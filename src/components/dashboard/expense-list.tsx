@@ -34,6 +34,8 @@ import { useAuth } from '@/firebase/auth-provider';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -93,30 +95,32 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
       return;
     }
 
-    try {
-      const expenseDocRef = doc(
-        db,
-        'users',
-        user.uid,
-        'expenses',
-        expenseToDelete.id
-      );
-      await deleteDoc(expenseDocRef);
-      toast({
-        title: 'Expense Deleted',
-        description: `${expenseToDelete.name} has been removed.`,
+    const expenseDocRef = doc(
+      db,
+      'users',
+      user.uid,
+      'expenses',
+      expenseToDelete.id
+    );
+
+    deleteDoc(expenseDocRef)
+      .then(() => {
+        toast({
+          title: 'Expense Deleted',
+          description: `${expenseToDelete.name} has been removed.`,
+        });
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: expenseDocRef.path,
+          operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setIsDeleteDialogOpen(false);
+        setExpenseToDelete(null);
       });
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error deleting expense',
-        description:
-          error.message || 'Could not delete expense. Please try again.',
-      });
-    } finally {
-      setIsDeleteDialogOpen(false);
-      setExpenseToDelete(null);
-    }
   };
 
   return (
