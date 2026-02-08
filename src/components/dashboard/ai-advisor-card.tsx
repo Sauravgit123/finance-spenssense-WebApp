@@ -52,11 +52,8 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
       setMessages(prev => [...prev, aiMessage]);
 
     } catch (e: any) {
-      console.error(e);
-      let errorMessage = 'Sorry, I couldn\'t generate a response right now. Please try again later.';
-      if (e.message && (e.message.includes('API key') || e.message.includes('permission'))) {
-        errorMessage = 'Your Gemini API key is missing or invalid. Please add it to your .env file to use the AI advisor.';
-      }
+      console.error("AI Advisor Error:", e);
+      const errorMessage = 'Sorry, I couldn\'t generate a response right now. Please try again later.';
       
       setMessages(prev => prev.slice(0, -1));
       setError(errorMessage);
