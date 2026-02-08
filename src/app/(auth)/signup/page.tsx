@@ -62,7 +62,7 @@ export default function SignupPage() {
   }
 
   return (
-    <Card className="w-full max-w-sm">
+    <Card className="w-full max-w-sm bg-white/5 backdrop-blur-md border border-white/10 shadow-lg rounded-2xl">
       <CardHeader>
         <CardTitle className="text-2xl">Sign Up</CardTitle>
         <CardDescription>
