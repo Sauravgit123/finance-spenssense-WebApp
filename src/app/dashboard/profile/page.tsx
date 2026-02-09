@@ -23,8 +23,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
-import type { EmblaOptionsType } from 'embla-carousel-react';
 
 
 const profileSchema = z.object({
@@ -39,10 +37,6 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-const defaultAvatars = Array.from({ length: 20 }, (_, i) => `https://api.dicebear.com/8.x/lorelei/svg?seed=${i + 1}`);
-
-const CAROUSEL_OPTIONS: EmblaOptionsType = { loop: true };
-
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
@@ -55,10 +49,6 @@ export default function ProfilePage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(null);
-
-  const [areAvatarsLoading, setAreAvatarsLoading] = useState(true);
-
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -81,14 +71,15 @@ export default function ProfilePage() {
           const data = docSnap.data() as UserData;
           setUserData(data);
           form.reset({
-            displayName: data.displayName || '',
+            displayName: data.displayName || user.displayName || '',
             bio: data.bio || '',
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
-          if (data.photoURL) {
-            setImagePreview(data.photoURL);
-          }
+        }
+        // Use user's photoURL from auth as the source of truth for the preview
+        if (user.photoURL) {
+          setImagePreview(user.photoURL);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -105,19 +96,22 @@ export default function ProfilePage() {
     fetchUserData();
   }, [user, db, form, toast]);
 
+  // Sync preview with auth state changes
+  useEffect(() => {
+    if (user?.photoURL) {
+      setImagePreview(user.photoURL);
+    } else {
+      setImagePreview(null);
+    }
+  }, [user?.photoURL]);
+
+
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
-      setSelectedAvatarUrl(null); 
     }
-  };
-  
-  const handleAvatarSelect = (avatarUrl: string) => {
-    setImagePreview(avatarUrl);
-    setSelectedAvatarUrl(avatarUrl);
-    setImageFile(null); 
   };
 
 
@@ -126,23 +120,21 @@ export default function ProfilePage() {
     setIsUpdating(true);
 
     try {
-      let photoURL = userData?.photoURL || '';
+      let photoURL = user.photoURL || '';
 
       if (imageFile) {
         const storageRef = ref(storage, `profile-pictures/${user.uid}`);
         await uploadBytes(storageRef, imageFile);
         photoURL = await getDownloadURL(storageRef);
-      } else if (selectedAvatarUrl) {
-        photoURL = selectedAvatarUrl;
       }
       
-      // Sync with Firebase Auth to prevent stale images
-      await updateProfile(user, { photoURL });
+      // Update Firebase Auth profile first, this is the source of truth
+      await updateProfile(user, { displayName: data.displayName, photoURL });
 
       const userDocRef = doc(db, 'users', user.uid);
       const updatedData = {
         ...data,
-        photoURL,
+        photoURL, // Sync Firestore with the URL from Auth/Storage
         savingsGoal: data.savingsGoal ?? 0,
       };
 
@@ -157,6 +149,7 @@ export default function ProfilePage() {
       });
 
       setUserData(prev => prev ? { ...prev, ...updatedData } : updatedData);
+      setImageFile(null);
 
       toast({
         title: 'Profile Updated',
@@ -173,18 +166,6 @@ export default function ProfilePage() {
       setIsUpdating(false);
     }
   };
-
-  useEffect(() => {
-    const imagePromises = defaultAvatars.map(src => {
-        const img = new window.Image();
-        img.src = src;
-        return new Promise(resolve => {
-            img.onload = resolve;
-            img.onerror = resolve;
-        });
-    });
-    Promise.all(imagePromises).then(() => setAreAvatarsLoading(false));
-  }, []);
 
   if (authLoading || isLoading) {
     return (
@@ -255,44 +236,6 @@ export default function ProfilePage() {
                     <Textarea id="bio" {...form.register('bio')} placeholder="Tell us about yourself..." className="bg-white/5 border-white/20"/>
                      {form.formState.errors.bio && <p className="text-red-400 text-sm mt-1">{form.formState.errors.bio.message}</p>}
                 </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-slate-300">Or choose an avatar</Label>
-                   <Carousel opts={CAROUSEL_OPTIONS} className="w-full">
-                     <CarouselContent className="-ml-2">
-                       {areAvatarsLoading ? (
-                        Array.from({ length: 5 }).map((_, index) => (
-                           <CarouselItem key={index} className="basis-1/4 md:basis-1/5 pl-2">
-                               <div className="p-1">
-                                   <Skeleton className="h-16 w-16 rounded-full" />
-                               </div>
-                           </CarouselItem>
-                         ))
-                       ) : (
-                         defaultAvatars.map((avatarUrl, index) => (
-                           <CarouselItem key={index} className="basis-1/4 md:basis-1/5 pl-2">
-                               <div className="p-1">
-                                   <Image
-                                       src={avatarUrl}
-                                       alt={`Avatar ${index + 1}`}
-                                       width={64}
-                                       height={64}
-                                       className={cn(
-                                         "rounded-full h-16 w-16 object-cover cursor-pointer border-2 border-transparent hover:border-primary transition-all flex-shrink-0",
-                                         imagePreview === avatarUrl && !imageFile && "border-primary ring-2 ring-primary"
-                                       )}
-                                       onClick={() => handleAvatarSelect(avatarUrl)}
-                                     />
-                               </div>
-                           </CarouselItem>
-                         ))
-                       )}
-                     </CarouselContent>
-                     <CarouselPrevious type="button" />
-                     <CarouselNext type="button" />
-                   </Carousel>
-                </div>
-
 
                 <div className="border-t border-white/10 pt-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
