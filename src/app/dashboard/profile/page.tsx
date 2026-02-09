@@ -8,7 +8,6 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/firebase/auth-provider';
 import { useFirestore, useFirebaseStorage } from '@/firebase/provider';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Pencil, Loader2, Leaf, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -18,7 +17,7 @@ import type { UserData } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -37,11 +36,26 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
+const defaultAvatars = [
+  'https://avatar.iran.liara.run/public/boy',
+  'https://avatar.iran.liara.run/public/girl',
+  'https://avatar.iran.liara.run/public/boy?username=ali',
+  'https://avatar.iran.liara.run/public/girl?username=jane',
+  'https://avatar.iran.liara.run/public/boy?username=john',
+  'https://avatar.iran.liara.run/public/girl?username=sarah',
+  'https://avatar.iran.liara.run/public/boy?username=peter',
+  'https://avatar.iran.liara.run/public/girl?username=lisa',
+  'https://avatar.iran.liara.run/public/boy?username=james',
+  'https://avatar.iran.liara.run/public/girl?username=susan',
+  'https://avatar.iran.liara.run/public/boy?username=mark',
+  'https://avatar.iran.liara.run/public/girl?username=emily',
+];
+
+
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const db = useFirestore();
   const storage = useFirebaseStorage();
-  const router = useRouter();
   const { toast } = useToast();
 
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -49,6 +63,8 @@ export default function ProfilePage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(null);
+
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -100,8 +116,16 @@ export default function ProfilePage() {
       const file = e.target.files[0];
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
+      setSelectedAvatarUrl(null); // Clear selected avatar if a file is uploaded
     }
   };
+  
+  const handleAvatarSelect = (avatarUrl: string) => {
+    setImagePreview(avatarUrl);
+    setSelectedAvatarUrl(avatarUrl);
+    setImageFile(null); // Clear any uploaded file
+  };
+
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) return;
@@ -114,6 +138,8 @@ export default function ProfilePage() {
         const storageRef = ref(storage, `profile-pictures/${user.uid}`);
         await uploadBytes(storageRef, imageFile);
         photoURL = await getDownloadURL(storageRef);
+      } else if (selectedAvatarUrl) {
+        photoURL = selectedAvatarUrl;
       }
 
       const userDocRef = doc(db, 'users', user.uid);
@@ -214,6 +240,26 @@ export default function ProfilePage() {
                      {form.formState.errors.bio && <p className="text-red-400 text-sm mt-1">{form.formState.errors.bio.message}</p>}
                 </div>
 
+                <div className="space-y-2">
+                  <Label className="text-slate-300">Or choose an avatar</Label>
+                  <div className="flex space-x-3 overflow-x-auto py-2 -mx-2 px-2">
+                    {defaultAvatars.map((avatarUrl, index) => (
+                      <Image
+                        key={index}
+                        src={avatarUrl}
+                        alt={`Avatar ${index + 1}`}
+                        width={64}
+                        height={64}
+                        className={cn(
+                          "rounded-full h-16 w-16 object-cover cursor-pointer border-2 border-transparent hover:border-primary transition-all flex-shrink-0",
+                          imagePreview === avatarUrl && !imageFile && "border-primary ring-2 ring-primary"
+                        )}
+                        onClick={() => handleAvatarSelect(avatarUrl)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
                 <div className="border-t border-white/10 pt-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -233,6 +279,10 @@ export default function ProfilePage() {
                                         <SelectItem value="GBP">GBP - British Pound</SelectItem>
                                         <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
                                         <SelectItem value="INR">INR - Indian Rupee</SelectItem>
+                                        <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                                        <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                                        <SelectItem value="CHF">CHF - Swiss Franc</SelectItem>
+                                        <SelectItem value="CNY">CNY - Chinese Yuan</SelectItem>
                                     </SelectContent>
                                     </Select>
                                 )}
