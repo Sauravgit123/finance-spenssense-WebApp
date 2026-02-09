@@ -62,6 +62,9 @@ export default function SignupPage() {
         displayName: values.displayName,
         income: 0,
         photoURL: '',
+        bio: '',
+        currency: 'USD',
+        savingsGoal: 0,
       };
       await setDoc(userDocRef, initialUserData);
 

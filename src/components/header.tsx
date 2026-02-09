@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/firebase/auth-provider';
 import { SpendSenseLogo } from './logo';
-import { LogOut } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 
 export function Header() {
   const { user, logout, loading } = useAuth();
@@ -53,6 +53,12 @@ export function Header() {
             <DropdownMenuContent align="end" className="bg-slate-900/80 backdrop-blur-md border-white/20">
               <DropdownMenuLabel>{user.displayName || user.email}</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/profile">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>

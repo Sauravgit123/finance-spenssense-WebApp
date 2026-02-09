@@ -17,9 +17,31 @@
         "income": {
           "type": "number",
           "description": "The user's monthly income."
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short user biography."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The user's preferred currency.",
+          "enum": [
+            "USD",
+            "EUR",
+            "GBP",
+            "JPY",
+            "INR"
+          ]
+        },
+        "savingsGoal": {
+          "type": "number",
+          "description": "The user's monthly savings goal."
         }
       },
-      "required": ["income", "displayName"]
+      "required": [
+        "income",
+        "displayName"
+      ]
     },
     "Expense": {
       "title": "Expense",
@@ -37,7 +59,11 @@
         "category": {
           "type": "string",
           "description": "The category of the expense.",
-          "enum": ["Needs", "Wants", "Savings"]
+          "enum": [
+            "Needs",
+            "Wants",
+            "Savings"
+          ]
         },
         "createdAt": {
           "type": "string",
@@ -45,11 +71,18 @@
           "description": "The timestamp when the expense was created."
         }
       },
-      "required": ["name", "amount", "category", "createdAt"]
+      "required": [
+        "name",
+        "amount",
+        "category",
+        "createdAt"
+      ]
     }
   },
   "auth": {
-    "providers": ["email-password"]
+    "providers": [
+      "email-password"
+    ]
   },
   "firestore": {
     "/users/{userId}": {
