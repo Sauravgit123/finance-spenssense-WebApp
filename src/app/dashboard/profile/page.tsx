@@ -9,7 +9,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/firebase/auth-provider';
 import { useFirestore, useFirebaseStorage } from '@/firebase/provider';
 import Image from 'next/image';
-import { Pencil, Loader2, Leaf, ShieldCheck } from 'lucide-react';
+import { Pencil, Loader2, Leaf, ShieldCheck, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { UserData } from '@/lib/types';
@@ -36,20 +36,7 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-const defaultAvatars = [
-  'https://avatar.iran.liara.run/public/boy',
-  'https://avatar.iran.liara.run/public/girl',
-  'https://avatar.iran.liara.run/public/boy?username=ali',
-  'https://avatar.iran.liara.run/public/girl?username=jane',
-  'https://avatar.iran.liara.run/public/boy?username=john',
-  'https://avatar.iran.liara.run/public/girl?username=sarah',
-  'https://avatar.iran.liara.run/public/boy?username=peter',
-  'https://avatar.iran.liara.run/public/girl?username=lisa',
-  'https://avatar.iran.liara.run/public/boy?username=james',
-  'https://avatar.iran.liara.run/public/girl?username=susan',
-  'https://avatar.iran.liara.run/public/boy?username=mark',
-  'https://avatar.iran.liara.run/public/girl?username=emily',
-];
+const defaultAvatars = Array.from({ length: 20 }, (_, i) => `https://avatar.iran.liara.run/raster?id=${i + 1}`);
 
 
 export default function ProfilePage() {
@@ -208,13 +195,19 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center space-y-4">
               <div className="relative group">
                 <label htmlFor="photoURL" className="cursor-pointer">
-                  <Image
-                    src={imagePreview || `https://avatar.iran.liara.run/public/boy?username=${user?.uid}`}
-                    alt="Profile"
-                    width={128}
-                    height={128}
-                    className="rounded-full w-32 h-32 object-cover border-4 border-white/20 group-hover:opacity-75 transition-opacity"
-                  />
+                  {imagePreview ? (
+                    <Image
+                      src={imagePreview}
+                      alt="Profile"
+                      width={128}
+                      height={128}
+                      className="rounded-full w-32 h-32 object-cover border-4 border-white/20 group-hover:opacity-75 transition-opacity"
+                    />
+                  ) : (
+                    <div className="rounded-full w-32 h-32 bg-muted border-4 border-white/20 flex items-center justify-center group-hover:opacity-75 transition-opacity">
+                      <User className="text-muted-foreground h-16 w-16" />
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Pencil className="text-white h-8 w-8" />
                   </div>
