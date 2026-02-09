@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { updateProfile } from 'firebase/auth';
 import { useAuth } from '@/firebase/auth-provider';
 import { useFirestore, useFirebaseStorage } from '@/firebase/provider';
 import Image from 'next/image';
@@ -13,7 +14,6 @@ import { Pencil, Loader2, Leaf, ShieldCheck, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { UserData } from '@/lib/types';
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,6 +23,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
+import type { EmblaOptionsType } from 'embla-carousel-react';
+
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -36,7 +39,9 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-const defaultAvatars = Array.from({ length: 20 }, (_, i) => `https://avatar.iran.liara.run/raster?id=${i + 1}`);
+const defaultAvatars = Array.from({ length: 20 }, (_, i) => `https://api.dicebear.com/8.x/lorelei/svg?seed=${i + 1}`);
+
+const CAROUSEL_OPTIONS: EmblaOptionsType = { loop: true };
 
 
 export default function ProfilePage() {
@@ -51,6 +56,8 @@ export default function ProfilePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(null);
+
+  const [areAvatarsLoading, setAreAvatarsLoading] = useState(true);
 
 
   const form = useForm<ProfileFormValues>({
@@ -103,14 +110,14 @@ export default function ProfilePage() {
       const file = e.target.files[0];
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
-      setSelectedAvatarUrl(null); // Clear selected avatar if a file is uploaded
+      setSelectedAvatarUrl(null); 
     }
   };
   
   const handleAvatarSelect = (avatarUrl: string) => {
     setImagePreview(avatarUrl);
     setSelectedAvatarUrl(avatarUrl);
-    setImageFile(null); // Clear any uploaded file
+    setImageFile(null); 
   };
 
 
@@ -128,6 +135,9 @@ export default function ProfilePage() {
       } else if (selectedAvatarUrl) {
         photoURL = selectedAvatarUrl;
       }
+      
+      // Sync with Firebase Auth to prevent stale images
+      await updateProfile(user, { photoURL });
 
       const userDocRef = doc(db, 'users', user.uid);
       const updatedData = {
@@ -146,6 +156,8 @@ export default function ProfilePage() {
         throw permissionError;
       });
 
+      setUserData(prev => prev ? { ...prev, ...updatedData } : updatedData);
+
       toast({
         title: 'Profile Updated',
         description: 'Your changes have been saved successfully.',
@@ -161,6 +173,18 @@ export default function ProfilePage() {
       setIsUpdating(false);
     }
   };
+
+  useEffect(() => {
+    const imagePromises = defaultAvatars.map(src => {
+        const img = new window.Image();
+        img.src = src;
+        return new Promise(resolve => {
+            img.onload = resolve;
+            img.onerror = resolve;
+        });
+    });
+    Promise.all(imagePromises).then(() => setAreAvatarsLoading(false));
+  }, []);
 
   if (authLoading || isLoading) {
     return (
@@ -184,7 +208,6 @@ export default function ProfilePage() {
     );
   }
   
-  // Example logic for financial health.
   const isHealthy = (userData?.savingsGoal ?? 0) > 0;
 
   return (
@@ -232,26 +255,44 @@ export default function ProfilePage() {
                     <Textarea id="bio" {...form.register('bio')} placeholder="Tell us about yourself..." className="bg-white/5 border-white/20"/>
                      {form.formState.errors.bio && <p className="text-red-400 text-sm mt-1">{form.formState.errors.bio.message}</p>}
                 </div>
-
+                
                 <div className="space-y-2">
                   <Label className="text-slate-300">Or choose an avatar</Label>
-                  <div className="flex space-x-3 overflow-x-auto py-2 -mx-2 px-2">
-                    {defaultAvatars.map((avatarUrl, index) => (
-                      <Image
-                        key={index}
-                        src={avatarUrl}
-                        alt={`Avatar ${index + 1}`}
-                        width={64}
-                        height={64}
-                        className={cn(
-                          "rounded-full h-16 w-16 object-cover cursor-pointer border-2 border-transparent hover:border-primary transition-all flex-shrink-0",
-                          imagePreview === avatarUrl && !imageFile && "border-primary ring-2 ring-primary"
-                        )}
-                        onClick={() => handleAvatarSelect(avatarUrl)}
-                      />
-                    ))}
-                  </div>
+                   <Carousel opts={CAROUSEL_OPTIONS} className="w-full">
+                     <CarouselContent className="-ml-2">
+                       {areAvatarsLoading ? (
+                        Array.from({ length: 5 }).map((_, index) => (
+                           <CarouselItem key={index} className="basis-1/4 md:basis-1/5 pl-2">
+                               <div className="p-1">
+                                   <Skeleton className="h-16 w-16 rounded-full" />
+                               </div>
+                           </CarouselItem>
+                         ))
+                       ) : (
+                         defaultAvatars.map((avatarUrl, index) => (
+                           <CarouselItem key={index} className="basis-1/4 md:basis-1/5 pl-2">
+                               <div className="p-1">
+                                   <Image
+                                       src={avatarUrl}
+                                       alt={`Avatar ${index + 1}`}
+                                       width={64}
+                                       height={64}
+                                       className={cn(
+                                         "rounded-full h-16 w-16 object-cover cursor-pointer border-2 border-transparent hover:border-primary transition-all flex-shrink-0",
+                                         imagePreview === avatarUrl && !imageFile && "border-primary ring-2 ring-primary"
+                                       )}
+                                       onClick={() => handleAvatarSelect(avatarUrl)}
+                                     />
+                               </div>
+                           </CarouselItem>
+                         ))
+                       )}
+                     </CarouselContent>
+                     <CarouselPrevious type="button" />
+                     <CarouselNext type="button" />
+                   </Carousel>
                 </div>
+
 
                 <div className="border-t border-white/10 pt-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
