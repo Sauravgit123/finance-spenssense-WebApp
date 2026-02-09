@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import 'react-image-crop/dist/ReactCrop.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/firebase/auth-provider';
 import { FirebaseProvider } from '@/firebase/provider';
