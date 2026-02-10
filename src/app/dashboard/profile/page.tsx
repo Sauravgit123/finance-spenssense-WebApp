@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, ChangeEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -184,14 +184,14 @@ export default function ProfilePage() {
                 <Label className="text-slate-300">Choose Avatar</Label>
                 <div className="flex gap-4">
                   {placeholderImageData.avatars.map((avatar) => {
-                    const url = `https://picsum.photos/seed/${avatar.seed}/200/200`;
+                    const url = avatar.url;
                     return (
                       <button
                         type="button"
-                        key={avatar.seed}
+                        key={avatar.url}
                         onClick={() => handleAvatarSelect(url)}
                         className={cn(
-                          'rounded-full overflow-hidden transition-all duration-200 border-4',
+                          'rounded-full overflow-hidden transition-all duration-200 border-4 p-1 bg-white/10',
                           selectedAvatar === url
                             ? 'border-primary shadow-lg scale-110'
                             : 'border-transparent hover:border-primary/50'
