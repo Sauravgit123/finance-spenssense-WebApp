@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/firebase/auth-provider';
-import { useFirestore } from '@/firebase/provider';
-import { Loader2, Leaf, ShieldCheck, User } from 'lucide-react';
+import { useFirestore, useFirebaseStorage } from '@/firebase/provider';
+import { Loader2, Leaf, ShieldCheck, User, Edit, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { UserData } from '@/lib/types';
@@ -19,6 +20,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -34,15 +37,48 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
+const AI_AVATARS = [
+  // Female-presenting
+  'https://api.dicebear.com/8.x/micah/svg?seed=Zoe&backgroundColor=d1d4f9,c0aede,b6e3f4',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Luna&backgroundColor=d1d4f9,c0aede,b6e3f4',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Sophie&backgroundColor=d1d4f9,c0aede,b6e3f4',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Mia&backgroundColor=d1d4f9,c0aede,b6e3f4',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Lily&backgroundColor=d1d4f9,c0aede,b6e3f4',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Isabella&backgroundColor=d1d4f9,c0aede,b6e3f4',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Grace&backgroundColor=d1d4f9,c0aede,b6e3f4',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Chloe&backgroundColor=d1d4f9,c0aede,b6e3f4',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Bella&backgroundColor=d1d4f9,c0aede,b6e3f4',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Ava&backgroundColor=d1d4f9,c0aede,b6e3f4',
+  // Male-presenting
+  'https://api.dicebear.com/8.x/micah/svg?seed=Max&backgroundColor=b6e3f4,c0aede,d1d4f9',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Leo&backgroundColor=b6e3f4,c0aede,d1d4f9',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Sam&backgroundColor=b6e3f4,c0aede,d1d4f9',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Charlie&backgroundColor=b6e3f4,c0aede,d1d4f9',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Jack&backgroundColor=b6e3f4,c0aede,d1d4f9',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Toby&backgroundColor=b6e3f4,c0aede,d1d4f9',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Oliver&backgroundColor=b6e3f4,c0aede,d1d4f9',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Cody&backgroundColor=b6e3f4,c0aede,d1d4f9',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Milo&backgroundColor=b6e3f4,c0aede,d1d4f9',
+  'https://api.dicebear.com/8.x/micah/svg?seed=Rocky&backgroundColor=b6e3f4,c0aede,d1d4f9',
+];
+
+
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const db = useFirestore();
+  const storage = useFirebaseStorage();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // State for image handling
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [selectedAvatar, setSelectedAvatar] = useState<string>('');
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
+  
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -69,6 +105,10 @@ export default function ProfilePage() {
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
+          setPreviewUrl(data.photoURL || '');
+          if (data.photoURL && AI_AVATARS.includes(data.photoURL)) {
+            setSelectedAvatar(data.photoURL);
+          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -85,48 +125,81 @@ export default function ProfilePage() {
     fetchUserData();
   }, [user, db, form, toast]);
 
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewImageFile(file);
+      setSelectedAvatar('');
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) return;
     setIsUpdating(true);
 
     try {
-      // Forcefully remove photoURL from Auth profile to delete old image
-      await updateProfile(user, { displayName: data.displayName, photoURL: '' });
+        let photoURLForUpdate: string | undefined = undefined;
 
-      const userDocRef = doc(db, 'users', user.uid);
-      const updatedData: Partial<UserData> = {
-        displayName: data.displayName,
-        bio: data.bio,
-        currency: data.currency,
-        savingsGoal: data.savingsGoal ?? 0,
-        photoURL: '', // Forcefully remove from Firestore
-      };
+        if (newImageFile) {
+            const filePath = `profile-pictures/${user.uid}/${newImageFile.name}`;
+            const imageRef = storageRef(storage, filePath);
+            await uploadBytes(imageRef, newImageFile);
+            photoURLForUpdate = await getDownloadURL(imageRef);
+        } else {
+            if (previewUrl !== userData?.photoURL) {
+                photoURLForUpdate = previewUrl;
+            }
+        }
 
-      updateDoc(userDocRef, updatedData).catch(serverError => {
-        const permissionError = new FirestorePermissionError({
-          path: userDocRef.path,
-          operation: 'update',
-          requestResourceData: updatedData,
+        const updatedData: Partial<UserData> = {
+            displayName: data.displayName,
+            bio: data.bio,
+            currency: data.currency,
+            savingsGoal: data.savingsGoal ?? 0,
+        };
+
+        const authProfileUpdate: { displayName: string; photoURL?: string } = {
+            displayName: data.displayName,
+        };
+
+        if (photoURLForUpdate !== undefined) {
+            updatedData.photoURL = photoURLForUpdate;
+            authProfileUpdate.photoURL = photoURLForUpdate;
+        }
+
+        await updateProfile(user, authProfileUpdate);
+        
+        const userDocRef = doc(db, 'users', user.uid);
+        updateDoc(userDocRef, updatedData).catch(serverError => {
+            const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'update',
+                requestResourceData: updatedData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw permissionError;
         });
-        errorEmitter.emit('permission-error', permissionError);
-        throw permissionError;
-      });
 
-      setUserData(prev => prev ? { ...prev, ...updatedData } as UserData : updatedData as UserData);
-
-      toast({
-        title: 'Profile Updated',
-        description: 'Your changes have been saved successfully.',
-      });
+        toast({
+            title: 'Profile Updated',
+            description: 'Your changes have been saved successfully.',
+        });
+        
+        setNewImageFile(null);
     } catch (error) {
-      console.error('Error updating profile:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Update Failed',
-        description: 'There was an error updating your profile.',
-      });
+        console.error('Error updating profile:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Update Failed',
+            description: 'There was an error updating your profile.',
+        });
     } finally {
-      setIsUpdating(false);
+        setIsUpdating(false);
     }
   };
 
@@ -164,8 +237,47 @@ export default function ProfilePage() {
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="p-6 md:p-8">
             <div className="flex flex-col items-center space-y-4">
-              <div className="rounded-full w-32 h-32 bg-muted border-4 border-white/20 flex items-center justify-center overflow-hidden">
-                <User className="text-muted-foreground h-16 w-16" />
+              <div className="relative group">
+                <Avatar className="w-32 h-32 border-4 border-white/20">
+                    <AvatarImage src={previewUrl} alt="User profile" />
+                    <AvatarFallback className="bg-muted">
+                        <User className="text-muted-foreground h-16 w-16" />
+                    </AvatarFallback>
+                </Avatar>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageChange}
+                    accept="image/png, image/jpeg, image/gif"
+                    className="hidden"
+                />
+                <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="absolute bottom-1 right-1 h-8 w-8 rounded-full bg-slate-800/80 hover:bg-slate-700"
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    <Edit className="h-4 w-4" />
+                    <span className="sr-only">Upload image</span>
+                </Button>
+                {previewUrl && (
+                  <Button
+                      type="button"
+                      size="icon"
+                      variant="destructive"
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => {
+                          setPreviewUrl('');
+                          setSelectedAvatar('');
+                          setNewImageFile(null);
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                  >
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Remove image</span>
+                  </Button>
+                )}
               </div>
 
               <div className="w-full space-y-6">
@@ -178,6 +290,37 @@ export default function ProfilePage() {
                     <Label htmlFor="bio" className="text-slate-300">Bio</Label>
                     <Textarea id="bio" {...form.register('bio')} placeholder="Tell us about yourself..." className="bg-white/5 border-white/20"/>
                      {form.formState.errors.bio && <p className="text-red-400 text-sm mt-1">{form.formState.errors.bio.message}</p>}
+                </div>
+
+                <div className="space-y-2 pt-6 border-t border-white/10">
+                    <Label className="text-slate-300">Or choose an avatar</Label>
+                    <ScrollArea className="w-full">
+                        <div className="flex space-x-4 pb-4">
+                        {AI_AVATARS.map((avatarUrl) => (
+                            <button
+                                key={avatarUrl}
+                                type="button"
+                                onClick={() => {
+                                    setPreviewUrl(avatarUrl);
+                                    setSelectedAvatar(avatarUrl);
+                                    setNewImageFile(null);
+                                }}
+                                className={cn(
+                                    'rounded-full ring-2 ring-transparent focus:outline-none transition-all p-1',
+                                    previewUrl === avatarUrl && newImageFile === null ? 'ring-primary bg-primary/20' : 'ring-transparent hover:ring-primary/50'
+                                )}
+                            >
+                                <Avatar className="h-16 w-16">
+                                    <AvatarImage src={avatarUrl} />
+                                    <AvatarFallback>
+                                        <User />
+                                    </AvatarFallback>
+                                </Avatar>
+                            </button>
+                        ))}
+                        </div>
+                        <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
                 </div>
 
                 <div className="border-t border-white/10 pt-6">
