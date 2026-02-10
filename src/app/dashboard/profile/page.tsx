@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -8,7 +8,7 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { useAuth } from '@/firebase/auth-provider';
 import { useFirestore } from '@/firebase/provider';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { UserData } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
+import placeholderImageData from '@/lib/placeholder-images.json';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -39,6 +42,7 @@ export default function ProfilePage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -70,6 +74,7 @@ export default function ProfilePage() {
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
+          setSelectedAvatar(data.photoURL || null);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -92,20 +97,20 @@ export default function ProfilePage() {
 
     try {
         const userDocRef = doc(db, 'users', user.uid);
-        // Forcefully remove the photoURL by setting it to an empty string.
-        const newPhotoURL = '';
+        
+        const newPhotoURL = selectedAvatar;
 
         const updatedData: Partial<UserData> = {
             displayName: data.displayName,
             bio: data.bio,
             currency: data.currency,
             savingsGoal: data.savingsGoal ?? 0,
-            photoURL: newPhotoURL, // Always set to empty string
+            photoURL: newPhotoURL,
         };
         
         const authProfileUpdate = {
             displayName: data.displayName,
-            photoURL: newPhotoURL, // Always set to empty string
+            photoURL: newPhotoURL,
         };
 
         await updateProfile(user, authProfileUpdate);
@@ -113,7 +118,7 @@ export default function ProfilePage() {
 
         toast({
             title: 'Profile Updated',
-            description: 'Your profile picture has been permanently removed.',
+            description: 'Your profile has been successfully updated.',
         });
 
     } catch (error) {
@@ -128,6 +133,14 @@ export default function ProfilePage() {
     }
   };
 
+  const handleAvatarSelect = (url: string) => {
+    if (selectedAvatar === url) {
+      setSelectedAvatar(null); // Deselect if already selected
+    } else {
+      setSelectedAvatar(url);
+    }
+  };
+
   if (authLoading || isLoading) {
     return (
         <div className="container mx-auto p-4 md:p-8 flex items-center justify-center">
@@ -137,7 +150,13 @@ export default function ProfilePage() {
                     <CardDescription>Manage your profile and settings.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 md:p-8 space-y-6">
-                    <Skeleton className="h-10 w-full" />
+                    <div className="flex items-center gap-6">
+                        <Skeleton className="h-24 w-24 rounded-full" />
+                        <div className="space-y-2 flex-1">
+                            <Skeleton className="h-6 w-1/3" />
+                            <Skeleton className="h-10 w-full" />
+                        </div>
+                    </div>
                     <Skeleton className="h-24 w-full" />
                     <div className="space-y-4">
                         <Skeleton className="h-6 w-1/4" />
@@ -156,23 +175,52 @@ export default function ProfilePage() {
       <Card className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg rounded-2xl">
         <CardHeader>
           <CardTitle>User Profile</CardTitle>
-          <CardDescription>Manage your profile and settings. Any existing profile picture will be removed upon update.</CardDescription>
+          <CardDescription>Manage your profile and settings. Choose a default avatar or leave it blank.</CardDescription>
         </CardHeader>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="p-6 md:p-8">
             <div className="w-full space-y-6">
-                <div className="space-y-2">
+              <div className="space-y-4">
+                <Label className="text-slate-300">Choose Avatar</Label>
+                <div className="flex gap-4">
+                  {placeholderImageData.avatars.map((avatar) => {
+                    const url = `https://picsum.photos/seed/${avatar.seed}/200/200`;
+                    return (
+                      <button
+                        type="button"
+                        key={avatar.seed}
+                        onClick={() => handleAvatarSelect(url)}
+                        className={cn(
+                          'rounded-full overflow-hidden transition-all duration-200 border-4',
+                          selectedAvatar === url
+                            ? 'border-primary shadow-lg scale-110'
+                            : 'border-transparent hover:border-primary/50'
+                        )}
+                      >
+                        <Avatar className="h-20 w-20">
+                          <AvatarImage src={url} alt={avatar.hint} data-ai-hint={avatar.hint} />
+                          <AvatarFallback>
+                            <User className="h-10 w-10" />
+                          </AvatarFallback>
+                        </Avatar>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
                 <Label htmlFor="displayName" className="text-slate-300">Display Name</Label>
                 <Input id="displayName" {...form.register('displayName')} placeholder="Your Name" className="bg-white/5 border-white/20"/>
                 {form.formState.errors.displayName && <p className="text-red-400 text-sm mt-1">{form.formState.errors.displayName.message}</p>}
-            </div>
-                <div className="space-y-2">
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="bio" className="text-slate-300">Bio</Label>
                 <Textarea id="bio" {...form.register('bio')} placeholder="Tell us about yourself..." className="bg-white/5 border-white/20"/>
                     {form.formState.errors.bio && <p className="text-red-400 text-sm mt-1">{form.formState.errors.bio.message}</p>}
-            </div>
+              </div>
             
-            <div className="border-t border-white/10 pt-6">
+              <div className="border-t border-white/10 pt-6">
                 <h3 className="text-lg font-semibold text-white mb-4">Financial Settings</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
@@ -206,11 +254,11 @@ export default function ProfilePage() {
                         {form.formState.errors.savingsGoal && <p className="text-red-400 text-sm mt-1">{form.formState.errors.savingsGoal.message}</p>}
                     </div>
                 </div>
-            </div>
+              </div>
 
-            <Button type="submit" className="w-full bg-gradient-to-r from-violet-600 to-sky-500 text-primary-foreground hover:shadow-lg hover:shadow-sky-500/20 transition-all text-base py-6" disabled={isUpdating}>
+              <Button type="submit" className="w-full bg-gradient-to-r from-violet-600 to-sky-500 text-primary-foreground hover:shadow-lg hover:shadow-sky-500/20 transition-all text-base py-6" disabled={isUpdating}>
                 {isUpdating ? <Loader2 className="animate-spin" /> : 'Update Profile'}
-            </Button>
+              </Button>
             </div>
           </CardContent>
         </form>
