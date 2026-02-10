@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -9,7 +8,7 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { useAuth } from '@/firebase/auth-provider';
 import { useFirestore } from '@/firebase/provider';
-import { Loader2, User } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { UserData } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -19,9 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { cn } from '@/lib/utils';
-import avatarData from '@/lib/placeholder-images.json';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -43,10 +39,7 @@ export default function ProfilePage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [selectedPhotoURL, setSelectedPhotoURL] = useState<string | null>(null);
 
-  const { avatars } = avatarData;
-  
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -77,7 +70,6 @@ export default function ProfilePage() {
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
-          setSelectedPhotoURL(data.photoURL || null);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -100,19 +92,20 @@ export default function ProfilePage() {
 
     try {
         const userDocRef = doc(db, 'users', user.uid);
-        const newPhotoURL = selectedPhotoURL;
+        // Forcefully remove the photoURL by setting it to an empty string.
+        const newPhotoURL = '';
 
         const updatedData: Partial<UserData> = {
             displayName: data.displayName,
             bio: data.bio,
             currency: data.currency,
             savingsGoal: data.savingsGoal ?? 0,
-            photoURL: newPhotoURL || '',
+            photoURL: newPhotoURL, // Always set to empty string
         };
         
         const authProfileUpdate = {
             displayName: data.displayName,
-            photoURL: newPhotoURL,
+            photoURL: newPhotoURL, // Always set to empty string
         };
 
         await updateProfile(user, authProfileUpdate);
@@ -120,7 +113,7 @@ export default function ProfilePage() {
 
         toast({
             title: 'Profile Updated',
-            description: 'Your changes have been saved.',
+            description: 'Your profile picture has been permanently removed.',
         });
 
     } catch (error) {
@@ -138,11 +131,12 @@ export default function ProfilePage() {
   if (authLoading || isLoading) {
     return (
         <div className="container mx-auto p-4 md:p-8 flex items-center justify-center">
-            <Card className="w-full max-w-2xl bg-transparent border-none shadow-none">
-                <CardHeader className="items-center">
-                    <Skeleton className="h-32 w-32 rounded-full" />
+            <Card className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg rounded-2xl">
+                <CardHeader>
+                    <CardTitle>User Profile</CardTitle>
+                    <CardDescription>Manage your profile and settings.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="p-6 md:p-8 space-y-6">
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-24 w-full" />
                     <div className="space-y-4">
@@ -162,98 +156,61 @@ export default function ProfilePage() {
       <Card className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg rounded-2xl">
         <CardHeader>
           <CardTitle>User Profile</CardTitle>
-          <CardDescription>Manage your profile and settings.</CardDescription>
+          <CardDescription>Manage your profile and settings. Any existing profile picture will be removed upon update.</CardDescription>
         </CardHeader>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="p-6 md:p-8">
-            <div className="flex flex-col items-center space-y-6">
-              <div className="relative group">
-                <Avatar className="w-32 h-32 border-4 border-white/20">
-                    <AvatarImage src={selectedPhotoURL || null} alt={user?.displayName || ''} />
-                    <AvatarFallback className="bg-muted">
-                        <User className="text-muted-foreground h-16 w-16" />
-                    </AvatarFallback>
-                </Avatar>
-              </div>
-
-              <div className="w-full space-y-6">
+            <div className="w-full space-y-6">
                 <div className="space-y-2">
-                    <Label className="text-slate-300">Choose Avatar</Label>
-                    <div className="flex gap-4">
-                        {avatars.map((avatar) => (
-                            <button
-                                key={avatar.id}
-                                type="button"
-                                className={cn(
-                                    "rounded-full border-4 transition-all",
-                                    selectedPhotoURL === avatar.url ? "border-primary" : "border-transparent hover:border-primary/50"
-                                )}
-                                onClick={() => setSelectedPhotoURL(selectedPhotoURL === avatar.url ? null : avatar.url)}
-                            >
-                                <Image
-                                    src={avatar.url}
-                                    alt={avatar.alt}
-                                    width={80}
-                                    height={80}
-                                    className="rounded-full"
-                                    data-ai-hint={avatar.hint}
-                                />
-                            </button>
-                        ))}
+                <Label htmlFor="displayName" className="text-slate-300">Display Name</Label>
+                <Input id="displayName" {...form.register('displayName')} placeholder="Your Name" className="bg-white/5 border-white/20"/>
+                {form.formState.errors.displayName && <p className="text-red-400 text-sm mt-1">{form.formState.errors.displayName.message}</p>}
+            </div>
+                <div className="space-y-2">
+                <Label htmlFor="bio" className="text-slate-300">Bio</Label>
+                <Textarea id="bio" {...form.register('bio')} placeholder="Tell us about yourself..." className="bg-white/5 border-white/20"/>
+                    {form.formState.errors.bio && <p className="text-red-400 text-sm mt-1">{form.formState.errors.bio.message}</p>}
+            </div>
+            
+            <div className="border-t border-white/10 pt-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Financial Settings</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="currency" className="text-slate-300">Currency</Label>
+                            <Controller
+                            name="currency"
+                            control={form.control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger className="w-full bg-white/5 border-white/20">
+                                    <SelectValue placeholder="Select Currency" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-900/80 backdrop-blur-md border-white/20">
+                                    <SelectItem value="USD">USD - US Dollar</SelectItem>
+                                    <SelectItem value="EUR">EUR - Euro</SelectItem>
+                                    <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                                    <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+                                    <SelectItem value="INR">INR - Indian Rupee</SelectItem>
+                                    <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                                    <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                                    <SelectItem value="CHF">CHF - Swiss Franc</SelectItem>
+                                    <SelectItem value="CNY">CNY - Chinese Yuan</SelectItem>
+                                </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="savingsGoal" className="text-slate-300">Monthly Savings Goal ($)</Label>
+                        <Input id="savingsGoal" type="number" {...form.register('savingsGoal')} placeholder="e.g., 500" className="bg-white/5 border-white/20" />
+                        {form.formState.errors.savingsGoal && <p className="text-red-400 text-sm mt-1">{form.formState.errors.savingsGoal.message}</p>}
                     </div>
                 </div>
+            </div>
 
-                 <div className="space-y-2">
-                    <Label htmlFor="displayName" className="text-slate-300">Display Name</Label>
-                    <Input id="displayName" {...form.register('displayName')} placeholder="Your Name" className="bg-white/5 border-white/20"/>
-                    {form.formState.errors.displayName && <p className="text-red-400 text-sm mt-1">{form.formState.errors.displayName.message}</p>}
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="bio" className="text-slate-300">Bio</Label>
-                    <Textarea id="bio" {...form.register('bio')} placeholder="Tell us about yourself..." className="bg-white/5 border-white/20"/>
-                     {form.formState.errors.bio && <p className="text-red-400 text-sm mt-1">{form.formState.errors.bio.message}</p>}
-                </div>
-                
-                <div className="border-t border-white/10 pt-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Financial Settings</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="currency" className="text-slate-300">Currency</Label>
-                             <Controller
-                                name="currency"
-                                control={form.control}
-                                render={({ field }) => (
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger className="w-full bg-white/5 border-white/20">
-                                        <SelectValue placeholder="Select Currency" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-slate-900/80 backdrop-blur-md border-white/20">
-                                        <SelectItem value="USD">USD - US Dollar</SelectItem>
-                                        <SelectItem value="EUR">EUR - Euro</SelectItem>
-                                        <SelectItem value="GBP">GBP - British Pound</SelectItem>
-                                        <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
-                                        <SelectItem value="INR">INR - Indian Rupee</SelectItem>
-                                        <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
-                                        <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
-                                        <SelectItem value="CHF">CHF - Swiss Franc</SelectItem>
-                                        <SelectItem value="CNY">CNY - Chinese Yuan</SelectItem>
-                                    </SelectContent>
-                                    </Select>
-                                )}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="savingsGoal" className="text-slate-300">Monthly Savings Goal ($)</Label>
-                            <Input id="savingsGoal" type="number" {...form.register('savingsGoal')} placeholder="e.g., 500" className="bg-white/5 border-white/20" />
-                            {form.formState.errors.savingsGoal && <p className="text-red-400 text-sm mt-1">{form.formState.errors.savingsGoal.message}</p>}
-                        </div>
-                    </div>
-                </div>
-
-                <Button type="submit" className="w-full bg-gradient-to-r from-violet-600 to-sky-500 text-primary-foreground hover:shadow-lg hover:shadow-sky-500/20 transition-all text-base py-6" disabled={isUpdating}>
-                  {isUpdating ? <Loader2 className="animate-spin" /> : 'Update Profile'}
-                </Button>
-              </div>
+            <Button type="submit" className="w-full bg-gradient-to-r from-violet-600 to-sky-500 text-primary-foreground hover:shadow-lg hover:shadow-sky-500/20 transition-all text-base py-6" disabled={isUpdating}>
+                {isUpdating ? <Loader2 className="animate-spin" /> : 'Update Profile'}
+            </Button>
             </div>
           </CardContent>
         </form>
