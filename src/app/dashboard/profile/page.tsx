@@ -1,27 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ChangeEvent } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/firebase/auth-provider';
-import { useFirestore } from '@/firebase/provider';
-import { Loader2, Leaf, ShieldCheck, User } from 'lucide-react';
+import { useFirestore, useFirebaseStorage } from '@/firebase/provider';
+import { Loader2, Leaf, ShieldCheck, User, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { UserData } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-
+import Image from 'next/image';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -35,15 +37,21 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
+const avatarSeeds = ['Jasper', 'Sophie', 'Caleb', 'Eliza', 'Leo', 'Nora', 'Finn', 'Aria', 'Owen', 'Ivy', 'Milo', 'Luna', 'Theo', 'Isla', 'Henry', 'Mia', 'Arthur', 'Chloe', 'Julian', 'Stella'];
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const db = useFirestore();
+  const storage = useFirebaseStorage();
   const { toast } = useToast();
 
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -54,6 +62,12 @@ export default function ProfilePage() {
       savingsGoal: 0,
     },
   });
+  
+  useEffect(() => {
+    if (user?.photoURL) {
+      setImagePreview(user.photoURL);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -71,6 +85,9 @@ export default function ProfilePage() {
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
+          if (data.photoURL) {
+            setImagePreview(data.photoURL);
+          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -87,20 +104,47 @@ export default function ProfilePage() {
     fetchUserData();
   }, [user, db, form, toast]);
 
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      setSelectedAvatar(null);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+  
+  const handleAvatarSelect = (avatarUrl: string) => {
+    setSelectedAvatar(avatarUrl);
+    setImageFile(null);
+    setImagePreview(avatarUrl);
+  };
+
+  const uploadImage = async (file: File): Promise<string> => {
+    if (!user) throw new Error("User not authenticated for image upload.");
+    const storageRef = ref(storage, `profile-pictures/${user.uid}/${file.name}`);
+    await uploadBytes(storageRef, file);
+    return getDownloadURL(storageRef);
+  };
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) return;
     setIsUpdating(true);
 
     try {
-      const photoURL = ''; // Always ensure photoURL is empty
+      let photoURL = imagePreview;
+
+      if (imageFile) {
+        photoURL = await uploadImage(imageFile);
+      } else if (selectedAvatar) {
+        photoURL = selectedAvatar;
+      }
       
       await updateProfile(user, { displayName: data.displayName, photoURL });
 
       const userDocRef = doc(db, 'users', user.uid);
       const updatedData: Partial<UserData> = {
         ...data,
-        photoURL,
+        photoURL: photoURL,
         savingsGoal: data.savingsGoal ?? 0,
       };
 
@@ -115,6 +159,8 @@ export default function ProfilePage() {
       });
 
       setUserData(prev => prev ? { ...prev, ...updatedData } as UserData : updatedData as UserData);
+      setImageFile(null);
+      setSelectedAvatar(null);
 
       toast({
         title: 'Profile Updated',
@@ -159,13 +205,25 @@ export default function ProfilePage() {
   return (
     <div className="container mx-auto p-4 md:p-8 flex items-center justify-center">
       <Card className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg rounded-2xl">
+        <CardHeader>
+          <CardTitle>User Profile</CardTitle>
+          <CardDescription>Manage your profile and settings.</CardDescription>
+        </CardHeader>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="p-6 md:p-8">
             <div className="flex flex-col items-center space-y-4">
-              <div className="relative">
-                <div className="rounded-full w-32 h-32 bg-muted border-4 border-white/20 flex items-center justify-center">
-                  <User className="text-muted-foreground h-16 w-16" />
+              <div className="relative group">
+                <div className="rounded-full w-32 h-32 bg-muted border-4 border-white/20 flex items-center justify-center overflow-hidden">
+                  {imagePreview ? (
+                    <Image src={imagePreview} alt="Profile preview" width={128} height={128} className="object-cover w-full h-full" />
+                  ) : (
+                    <User className="text-muted-foreground h-16 w-16" />
+                  )}
                 </div>
+                 <label htmlFor="image-upload" className="absolute inset-0 bg-black/50 flex items-center justify-center text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                   <Edit className="h-8 w-8"/>
+                 </label>
+                 <Input id="image-upload" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
               </div>
 
               <div className="w-full space-y-6">
@@ -179,6 +237,33 @@ export default function ProfilePage() {
                     <Textarea id="bio" {...form.register('bio')} placeholder="Tell us about yourself..." className="bg-white/5 border-white/20"/>
                      {form.formState.errors.bio && <p className="text-red-400 text-sm mt-1">{form.formState.errors.bio.message}</p>}
                 </div>
+                
+                 <div className="space-y-2">
+                    <Label className="text-slate-300">Choose an Avatar</Label>
+                    <ScrollArea className="w-full">
+                      <div className="flex space-x-4 pb-4">
+                        {avatarSeeds.map((seed) => {
+                          const avatarUrl = `https://api.dicebear.com/8.x/micah/svg?seed=${seed}&backgroundColor=transparent`;
+                          return (
+                            <div key={seed} className="flex-shrink-0" onClick={() => handleAvatarSelect(avatarUrl)}>
+                              <Image
+                                src={avatarUrl}
+                                alt={`Avatar ${seed}`}
+                                width={80}
+                                height={80}
+                                className={cn(
+                                  "rounded-full cursor-pointer border-2 transition-all",
+                                  selectedAvatar === avatarUrl ? 'border-primary' : 'border-transparent hover:border-white/50'
+                                )}
+                              />
+                            </div>
+                          )
+                        })}
+                      </div>
+                      <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
+                </div>
+
 
                 <div className="border-t border-white/10 pt-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
