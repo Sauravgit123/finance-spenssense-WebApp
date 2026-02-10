@@ -1,15 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/firebase/auth-provider';
-import { useFirestore, useFirebaseStorage } from '@/firebase/provider';
-import { Loader2, User, Edit, X } from 'lucide-react';
+import { useFirestore } from '@/firebase/provider';
+import { Loader2, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { UserData } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -37,16 +36,10 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const db = useFirestore();
-  const storage = useFirebaseStorage();
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-
-  // State for image handling
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [newImageFile, setNewImageFile] = useState<File | null>(null);
   
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -61,9 +54,6 @@ export default function ProfilePage() {
   useEffect(() => {
     if (authLoading) return;
     
-    // Set the initial preview URL from the live auth user object
-    setPreviewUrl(user?.photoURL || null);
-
     if (!user) {
       setIsLoading(false);
       return;
@@ -81,8 +71,6 @@ export default function ProfilePage() {
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
-          // Also sync the previewUrl with firestore data
-          setPreviewUrl(data.photoURL || user.photoURL || null);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -98,48 +86,24 @@ export default function ProfilePage() {
 
     fetchUserData();
   }, [user, authLoading, db, form, toast]);
-
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setNewImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
   
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) return;
     setIsUpdating(true);
 
     try {
-        // Default action is to DELETE the photo unless a new one is uploaded.
-        let finalPhotoURL: string | null = null; 
-
-        // If a new file was selected, upload it and get its URL.
-        if (newImageFile) {
-            const filePath = `profile-pictures/${user.uid}/${newImageFile.name}`;
-            const imageRef = storageRef(storage, filePath);
-            await uploadBytes(imageRef, newImageFile);
-            finalPhotoURL = await getDownloadURL(imageRef);
-        }
-
-        // Prepare Firestore and Auth update objects.
-        // This will set the photoURL to the new URL if uploaded, or to null/empty if not.
+        // Unconditionally remove the photoURL from both Firestore and Auth
         const userDocRef = doc(db, 'users', user.uid);
         const updatedData: Partial<UserData> = {
             displayName: data.displayName,
             bio: data.bio,
             currency: data.currency,
             savingsGoal: data.savingsGoal ?? 0,
-            photoURL: finalPhotoURL ?? '', // Use empty string for Firestore deletion
+            photoURL: '', // Unconditionally set to empty string to delete from Firestore
         };
         const authProfileUpdate = {
             displayName: data.displayName,
-            photoURL: finalPhotoURL, // Use null for Auth deletion
+            photoURL: null, // Unconditionally set to null to delete from Auth
         };
 
         // Execute both updates
@@ -148,14 +112,8 @@ export default function ProfilePage() {
 
         toast({
             title: 'Profile Updated',
-            description: 'Your changes have been saved successfully.',
+            description: 'Your changes have been saved and the profile picture has been permanently removed.',
         });
-        
-        setNewImageFile(null); // Reset file input state
-        
-        // After a successful update, ensure the local preview reflects the final state.
-        // If no new image was uploaded, finalPhotoURL is null, so this will clear the preview.
-        setPreviewUrl(finalPhotoURL);
 
     } catch (error) {
         console.error('Error updating profile:', error);
@@ -203,44 +161,10 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center space-y-4">
               <div className="relative group">
                 <Avatar className="w-32 h-32 border-4 border-white/20">
-                    <AvatarImage src={previewUrl} alt="User profile" />
                     <AvatarFallback className="bg-muted">
                         <User className="text-muted-foreground h-16 w-16" />
                     </AvatarFallback>
                 </Avatar>
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageChange}
-                    accept="image/png, image/jpeg, image/gif"
-                    className="hidden"
-                />
-                <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    className="absolute bottom-1 right-1 h-8 w-8 rounded-full bg-slate-800/80 hover:bg-slate-700"
-                    onClick={() => fileInputRef.current?.click()}
-                >
-                    <Edit className="h-4 w-4" />
-                    <span className="sr-only">Upload image</span>
-                </Button>
-                {previewUrl && (
-                  <Button
-                      type="button"
-                      size="icon"
-                      variant="destructive"
-                      className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => {
-                          setPreviewUrl(null);
-                          setNewImageFile(null);
-                          if (fileInputRef.current) fileInputRef.current.value = '';
-                      }}
-                  >
-                      <X className="h-4 w-4" />
-                      <span className="sr-only">Remove image</span>
-                  </Button>
-                )}
               </div>
 
               <div className="w-full space-y-6">
