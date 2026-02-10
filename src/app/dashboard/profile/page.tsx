@@ -50,16 +50,6 @@ export default function ProfilePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: {
-      displayName: '',
-      bio: '',
-      currency: 'USD',
-      savingsGoal: 0,
-    },
-  });
-
   useEffect(() => {
     if (!user) return;
 
@@ -76,10 +66,9 @@ export default function ProfilePage() {
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
-        }
-        // Use user's photoURL from auth as the source of truth for the preview
-        if (user.photoURL) {
-          setImagePreview(user.photoURL);
+          // We intentionally do NOT set the image preview here
+          // to avoid showing the unwanted default image. The user will see the placeholder
+          // and can upload a new image. Saving will persist this new state.
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -96,15 +85,6 @@ export default function ProfilePage() {
     fetchUserData();
   }, [user, db, form, toast]);
 
-  // Sync preview with auth state changes
-  useEffect(() => {
-    if (user?.photoURL) {
-      setImagePreview(user.photoURL);
-    } else {
-      setImagePreview(null);
-    }
-  }, [user?.photoURL]);
-
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -120,7 +100,7 @@ export default function ProfilePage() {
     setIsUpdating(true);
 
     try {
-      let photoURL = user.photoURL || '';
+      let photoURL = '';
 
       if (imageFile) {
         const storageRef = ref(storage, `profile-pictures/${user.uid}`);
@@ -128,13 +108,13 @@ export default function ProfilePage() {
         photoURL = await getDownloadURL(storageRef);
       }
       
-      // Update Firebase Auth profile first, this is the source of truth
       await updateProfile(user, { displayName: data.displayName, photoURL });
 
       const userDocRef = doc(db, 'users', user.uid);
       const updatedData = {
+        ...userData,
         ...data,
-        photoURL, // Sync Firestore with the URL from Auth/Storage
+        photoURL,
         savingsGoal: data.savingsGoal ?? 0,
       };
 
@@ -150,6 +130,7 @@ export default function ProfilePage() {
 
       setUserData(prev => prev ? { ...prev, ...updatedData } : updatedData);
       setImageFile(null);
+      setImagePreview(photoURL); // Reflect the saved state
 
       toast({
         title: 'Profile Updated',
