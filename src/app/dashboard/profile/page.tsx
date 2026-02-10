@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { updateProfile } from 'firebase/auth';
 import { useAuth } from '@/firebase/auth-provider';
 import { useFirestore, useFirebaseStorage } from '@/firebase/provider';
@@ -50,6 +50,16 @@ export default function ProfilePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
 
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      displayName: '',
+      bio: '',
+      currency: 'USD',
+      savingsGoal: 0,
+    },
+  });
+
   useEffect(() => {
     if (!user) return;
 
@@ -66,9 +76,9 @@ export default function ProfilePage() {
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
-          // We intentionally do NOT set the image preview here
-          // to avoid showing the unwanted default image. The user will see the placeholder
-          // and can upload a new image. Saving will persist this new state.
+          if (data.photoURL) {
+            setImagePreview(data.photoURL);
+          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -100,19 +110,28 @@ export default function ProfilePage() {
     setIsUpdating(true);
 
     try {
-      let photoURL = '';
+      let photoURL = userData?.photoURL || '';
 
       if (imageFile) {
         const storageRef = ref(storage, `profile-pictures/${user.uid}`);
         await uploadBytes(storageRef, imageFile);
         photoURL = await getDownloadURL(storageRef);
+      } else if (!imagePreview && photoURL) {
+        photoURL = '';
+        const storageRef = ref(storage, `profile-pictures/${user.uid}`);
+        try {
+          await deleteObject(storageRef);
+        } catch (error: any) {
+          if (error.code !== 'storage/object-not-found') {
+            console.warn("Could not delete old profile picture:", error);
+          }
+        }
       }
       
       await updateProfile(user, { displayName: data.displayName, photoURL });
 
       const userDocRef = doc(db, 'users', user.uid);
-      const updatedData = {
-        ...userData,
+      const updatedData: Partial<UserData> = {
         ...data,
         photoURL,
         savingsGoal: data.savingsGoal ?? 0,
@@ -128,9 +147,9 @@ export default function ProfilePage() {
         throw permissionError;
       });
 
-      setUserData(prev => prev ? { ...prev, ...updatedData } : updatedData);
+      setUserData(prev => prev ? { ...prev, ...updatedData } as UserData : updatedData as UserData);
       setImageFile(null);
-      setImagePreview(photoURL); // Reflect the saved state
+      setImagePreview(photoURL);
 
       toast({
         title: 'Profile Updated',
