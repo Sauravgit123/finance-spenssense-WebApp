@@ -9,9 +9,8 @@ import { updateProfile } from 'firebase/auth';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/firebase/auth-provider';
 import { useFirestore, useFirebaseStorage } from '@/firebase/provider';
-import { Loader2, Leaf, ShieldCheck, User, Edit, X } from 'lucide-react';
+import { Loader2, User, Edit, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import type { UserData } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,8 +20,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -44,6 +41,13 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // State for image handling
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
+  
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -54,18 +58,10 @@ export default function ProfilePage() {
     },
   });
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  // State for image handling
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [newImageFile, setNewImageFile] = useState<File | null>(null);
-
   useEffect(() => {
     if (authLoading) return;
     
     // Set the initial preview URL from the live auth user object
-    // This is the most reliable source for the current profile picture.
     setPreviewUrl(user?.photoURL || null);
 
     if (!user) {
@@ -85,6 +81,8 @@ export default function ProfilePage() {
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
+          // Also sync the previewUrl with firestore data
+          setPreviewUrl(data.photoURL || user.photoURL || null);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -118,40 +116,33 @@ export default function ProfilePage() {
     setIsUpdating(true);
 
     try {
-        let finalPhotoURL: string | undefined = undefined; // undefined means no change
+        // Default action is to DELETE the photo unless a new one is uploaded.
+        let finalPhotoURL: string | null = null; 
 
-        // Case 1: New image was uploaded. `previewUrl` will be a local blob URL.
+        // If a new file was selected, upload it and get its URL.
         if (newImageFile) {
             const filePath = `profile-pictures/${user.uid}/${newImageFile.name}`;
             const imageRef = storageRef(storage, filePath);
             await uploadBytes(imageRef, newImageFile);
             finalPhotoURL = await getDownloadURL(imageRef);
-        } 
-        // Case 2: Image was removed (`previewUrl` is null) but there was an image before.
-        else if (previewUrl === null && user.photoURL) {
-            finalPhotoURL = ''; // Empty string signifies deletion.
         }
 
-        // Prepare Firestore and Auth update objects
+        // Prepare Firestore and Auth update objects.
+        // This will set the photoURL to the new URL if uploaded, or to null/empty if not.
         const userDocRef = doc(db, 'users', user.uid);
         const updatedData: Partial<UserData> = {
             displayName: data.displayName,
             bio: data.bio,
             currency: data.currency,
             savingsGoal: data.savingsGoal ?? 0,
+            photoURL: finalPhotoURL ?? '', // Use empty string for Firestore deletion
         };
-        const authProfileUpdate: { displayName: string; photoURL?: string | null } = {
+        const authProfileUpdate = {
             displayName: data.displayName,
+            photoURL: finalPhotoURL, // Use null for Auth deletion
         };
 
-        // If finalPhotoURL has been determined (new upload or deletion), add it to the updates.
-        if (finalPhotoURL !== undefined) {
-            updatedData.photoURL = finalPhotoURL;
-            // For Firebase Auth, an empty string isn't valid, we need null to delete.
-            authProfileUpdate.photoURL = finalPhotoURL || null;
-        }
-
-        // Execute updates
+        // Execute both updates
         await updateProfile(user, authProfileUpdate);
         await updateDoc(userDocRef, updatedData);
 
@@ -161,6 +152,11 @@ export default function ProfilePage() {
         });
         
         setNewImageFile(null); // Reset file input state
+        
+        // After a successful update, ensure the local preview reflects the final state.
+        // If no new image was uploaded, finalPhotoURL is null, so this will clear the preview.
+        setPreviewUrl(finalPhotoURL);
+
     } catch (error) {
         console.error('Error updating profile:', error);
         toast({
@@ -168,7 +164,6 @@ export default function ProfilePage() {
             title: 'Update Failed',
             description: 'There was an error updating your profile.',
         });
-        // The more specific error handling with errorEmitter can be added here if needed
     } finally {
         setIsUpdating(false);
     }
@@ -195,9 +190,6 @@ export default function ProfilePage() {
         </div>
     );
   }
-  
-  const savingsGoalValue = form.watch('savingsGoal');
-  const isHealthy = (savingsGoalValue ?? 0) > 0;
 
   return (
     <div className="container mx-auto p-4 md:p-8 flex items-center justify-center">
@@ -264,7 +256,7 @@ export default function ProfilePage() {
                 </div>
                 
                 <div className="border-t border-white/10 pt-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">Financial Settings</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <Label htmlFor="currency" className="text-slate-300">Currency</Label>
@@ -296,17 +288,6 @@ export default function ProfilePage() {
                             <Input id="savingsGoal" type="number" {...form.register('savingsGoal')} placeholder="e.g., 500" className="bg-white/5 border-white/20" />
                             {form.formState.errors.savingsGoal && <p className="text-red-400 text-sm mt-1">{form.formState.errors.savingsGoal.message}</p>}
                         </div>
-                    </div>
-                </div>
-
-                <div className="flex justify-between items-center border-t border-white/10 pt-6">
-                    <span className="text-lg font-semibold text-white">Financial Health</span>
-                    <div className={cn(
-                        'flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium',
-                         isHealthy ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
-                    )}>
-                        {isHealthy ? <ShieldCheck className="h-4 w-4"/> : <Leaf className="h-4 w-4"/>}
-                        <span>{isHealthy ? 'On Track' : 'Set a Goal'}</span>
                     </div>
                 </div>
 
