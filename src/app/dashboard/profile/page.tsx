@@ -1,16 +1,14 @@
 'use client';
 
-import { useState, useEffect, type ChangeEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { updateProfile } from 'firebase/auth';
 import { useAuth } from '@/firebase/auth-provider';
-import { useFirestore, useFirebaseStorage } from '@/firebase/provider';
-import Image from 'next/image';
-import { Pencil, Loader2, Leaf, ShieldCheck, User } from 'lucide-react';
+import { useFirestore } from '@/firebase/provider';
+import { Loader2, Leaf, ShieldCheck, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { UserData } from '@/lib/types';
@@ -41,14 +39,11 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const db = useFirestore();
-  const storage = useFirebaseStorage();
   const { toast } = useToast();
 
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -76,9 +71,6 @@ export default function ProfilePage() {
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
-          if (data.photoURL) {
-            setImagePreview(data.photoURL);
-          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -96,37 +88,12 @@ export default function ProfilePage() {
   }, [user, db, form, toast]);
 
 
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
-
-
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) return;
     setIsUpdating(true);
 
     try {
-      let photoURL = userData?.photoURL || '';
-
-      if (imageFile) {
-        const storageRef = ref(storage, `profile-pictures/${user.uid}`);
-        await uploadBytes(storageRef, imageFile);
-        photoURL = await getDownloadURL(storageRef);
-      } else if (!imagePreview && photoURL) {
-        photoURL = '';
-        const storageRef = ref(storage, `profile-pictures/${user.uid}`);
-        try {
-          await deleteObject(storageRef);
-        } catch (error: any) {
-          if (error.code !== 'storage/object-not-found') {
-            console.warn("Could not delete old profile picture:", error);
-          }
-        }
-      }
+      const photoURL = ''; // Always ensure photoURL is empty
       
       await updateProfile(user, { displayName: data.displayName, photoURL });
 
@@ -148,8 +115,6 @@ export default function ProfilePage() {
       });
 
       setUserData(prev => prev ? { ...prev, ...updatedData } as UserData : updatedData as UserData);
-      setImageFile(null);
-      setImagePreview(photoURL);
 
       toast({
         title: 'Profile Updated',
@@ -197,32 +162,10 @@ export default function ProfilePage() {
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="p-6 md:p-8">
             <div className="flex flex-col items-center space-y-4">
-              <div className="relative group">
-                <label htmlFor="photoURL" className="cursor-pointer">
-                  {imagePreview ? (
-                    <Image
-                      src={imagePreview}
-                      alt="Profile"
-                      width={128}
-                      height={128}
-                      className="rounded-full w-32 h-32 object-cover border-4 border-white/20 group-hover:opacity-75 transition-opacity"
-                    />
-                  ) : (
-                    <div className="rounded-full w-32 h-32 bg-muted border-4 border-white/20 flex items-center justify-center group-hover:opacity-75 transition-opacity">
-                      <User className="text-muted-foreground h-16 w-16" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Pencil className="text-white h-8 w-8" />
-                  </div>
-                </label>
-                <input
-                  type="file"
-                  id="photoURL"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
+              <div className="relative">
+                <div className="rounded-full w-32 h-32 bg-muted border-4 border-white/20 flex items-center justify-center">
+                  <User className="text-muted-foreground h-16 w-16" />
+                </div>
               </div>
 
               <div className="w-full space-y-6">

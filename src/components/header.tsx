@@ -18,20 +18,6 @@ import { LogOut, User } from 'lucide-react';
 export function Header() {
   const { user, logout, loading } = useAuth();
 
-  const getInitials = (name: string | null | undefined, email: string | null | undefined) => {
-    if (name) {
-      const names = name.split(' ');
-      if (names.length > 1 && names[names.length - 1]) {
-        return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
-      }
-      return name.substring(0, 2).toUpperCase();
-    }
-    if (email) {
-      return email[0].toUpperCase();
-    }
-    return 'U';
-  };
-
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b border-white/10 bg-slate-950/80 px-4 shadow-md backdrop-blur-sm md:px-6">
       <Link href="/dashboard" className="flex items-center gap-2">
@@ -46,7 +32,9 @@ export function Header() {
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar>
                   <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
-                  <AvatarFallback>{getInitials(user.displayName, user.email)}</AvatarFallback>
+                  <AvatarFallback>
+                    <User className="h-5 w-5" />
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
