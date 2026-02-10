@@ -44,14 +44,6 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  // State for image handling
-  const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [newImageFile, setNewImageFile] = useState<File | null>(null);
-  
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -62,8 +54,24 @@ export default function ProfilePage() {
     },
   });
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // State for image handling
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
+
   useEffect(() => {
-    if (!user) return;
+    if (authLoading) return;
+    
+    // Set the initial preview URL from the live auth user object
+    // This is the most reliable source for the current profile picture.
+    setPreviewUrl(user?.photoURL || null);
+
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
 
     const fetchUserData = async () => {
       const userDocRef = doc(db, 'users', user.uid);
@@ -71,14 +79,12 @@ export default function ProfilePage() {
         const docSnap = await getDoc(userDocRef);
         if (docSnap.exists()) {
           const data = docSnap.data() as UserData;
-          setUserData(data);
           form.reset({
             displayName: data.displayName || user.displayName || '',
             bio: data.bio || '',
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
-          setPreviewUrl(data.photoURL || '');
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -93,7 +99,7 @@ export default function ProfilePage() {
     };
 
     fetchUserData();
-  }, [user, db, form, toast]);
+  }, [user, authLoading, db, form, toast]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -112,48 +118,49 @@ export default function ProfilePage() {
     setIsUpdating(true);
 
     try {
+        let finalPhotoURL: string | undefined = undefined; // undefined means no change
+
+        // Case 1: New image was uploaded. `previewUrl` will be a local blob URL.
+        if (newImageFile) {
+            const filePath = `profile-pictures/${user.uid}/${newImageFile.name}`;
+            const imageRef = storageRef(storage, filePath);
+            await uploadBytes(imageRef, newImageFile);
+            finalPhotoURL = await getDownloadURL(imageRef);
+        } 
+        // Case 2: Image was removed (`previewUrl` is null) but there was an image before.
+        else if (previewUrl === null && user.photoURL) {
+            finalPhotoURL = ''; // Empty string signifies deletion.
+        }
+
+        // Prepare Firestore and Auth update objects
+        const userDocRef = doc(db, 'users', user.uid);
         const updatedData: Partial<UserData> = {
             displayName: data.displayName,
             bio: data.bio,
             currency: data.currency,
             savingsGoal: data.savingsGoal ?? 0,
         };
-
         const authProfileUpdate: { displayName: string; photoURL?: string | null } = {
             displayName: data.displayName,
         };
 
-        if (newImageFile) {
-            const filePath = `profile-pictures/${user.uid}/${newImageFile.name}`;
-            const imageRef = storageRef(storage, filePath);
-            await uploadBytes(imageRef, newImageFile);
-            const newPhotoURL = await getDownloadURL(imageRef);
-            updatedData.photoURL = newPhotoURL;
-            authProfileUpdate.photoURL = newPhotoURL;
-        } else if (previewUrl === '' && userData?.photoURL) {
-            // User cleared the image
-            updatedData.photoURL = '';
-            authProfileUpdate.photoURL = null; // This deletes the photoURL from Auth user
+        // If finalPhotoURL has been determined (new upload or deletion), add it to the updates.
+        if (finalPhotoURL !== undefined) {
+            updatedData.photoURL = finalPhotoURL;
+            // For Firebase Auth, an empty string isn't valid, we need null to delete.
+            authProfileUpdate.photoURL = finalPhotoURL || null;
         }
-        
+
+        // Execute updates
         await updateProfile(user, authProfileUpdate);
-        
-        const userDocRef = doc(db, 'users', user.uid);
-        updateDoc(userDocRef, updatedData).catch(serverError => {
-            const permissionError = new FirestorePermissionError({
-                path: userDocRef.path,
-                operation: 'update',
-                requestResourceData: updatedData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        });
+        await updateDoc(userDocRef, updatedData);
 
         toast({
             title: 'Profile Updated',
             description: 'Your changes have been saved successfully.',
         });
         
-        setNewImageFile(null);
+        setNewImageFile(null); // Reset file input state
     } catch (error) {
         console.error('Error updating profile:', error);
         toast({
@@ -161,6 +168,7 @@ export default function ProfilePage() {
             title: 'Update Failed',
             description: 'There was an error updating your profile.',
         });
+        // The more specific error handling with errorEmitter can be added here if needed
     } finally {
         setIsUpdating(false);
     }
@@ -188,7 +196,8 @@ export default function ProfilePage() {
     );
   }
   
-  const isHealthy = (userData?.savingsGoal ?? 0) > 0;
+  const savingsGoalValue = form.watch('savingsGoal');
+  const isHealthy = (savingsGoalValue ?? 0) > 0;
 
   return (
     <div className="container mx-auto p-4 md:p-8 flex items-center justify-center">
@@ -202,7 +211,7 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center space-y-4">
               <div className="relative group">
                 <Avatar className="w-32 h-32 border-4 border-white/20">
-                    <AvatarImage src={previewUrl || null} alt="User profile" />
+                    <AvatarImage src={previewUrl} alt="User profile" />
                     <AvatarFallback className="bg-muted">
                         <User className="text-muted-foreground h-16 w-16" />
                     </AvatarFallback>
@@ -231,7 +240,7 @@ export default function ProfilePage() {
                       variant="destructive"
                       className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => {
-                          setPreviewUrl('');
+                          setPreviewUrl(null);
                           setNewImageFile(null);
                           if (fileInputRef.current) fileInputRef.current.value = '';
                       }}
