@@ -33,6 +33,10 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
+const defaultAvatars = [
+  'https://api.dicebear.com/8.x/micah/svg?seed=boy-avatar-seed', // Boy
+  'https://api.dicebear.com/8.x/micah/svg?seed=girl-avatar-seed' // Girl
+];
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
@@ -41,6 +45,7 @@ export default function ProfilePage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -72,6 +77,12 @@ export default function ProfilePage() {
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
+          setSelectedAvatar(data.photoURL || null);
+        } else {
+             form.reset({
+                displayName: user.displayName || '',
+             });
+             setSelectedAvatar(user.photoURL || null);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -88,9 +99,15 @@ export default function ProfilePage() {
     fetchUserData();
   }, [user, authLoading, db, form, toast]);
   
+  const handleAvatarSelect = (url: string) => {
+    setSelectedAvatar(prev => (prev === url ? null : url));
+  };
+
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) return;
     setIsUpdating(true);
+
+    const photoURLToUpdate = selectedAvatar;
 
     try {
         const userDocRef = doc(db, 'users', user.uid);
@@ -100,15 +117,13 @@ export default function ProfilePage() {
             bio: data.bio,
             currency: data.currency,
             savingsGoal: data.savingsGoal ?? 0,
-            photoURL: null,
+            photoURL: photoURLToUpdate,
         };
         
-        const authProfileUpdate = {
+        await updateProfile(user, {
             displayName: data.displayName,
-            photoURL: null,
-        };
-
-        await updateProfile(user, authProfileUpdate);
+            photoURL: photoURLToUpdate,
+        });
         await updateDoc(userDocRef, updatedData);
 
         toast({
@@ -168,6 +183,42 @@ export default function ProfilePage() {
           <CardContent className="p-6 md:p-8">
             <div className="w-full space-y-6">
               
+              <div className="space-y-4">
+                  <Label className="text-slate-300">Choose Avatar</Label>
+                  <div className="flex items-center gap-6">
+                    <Avatar className="h-24 w-24 border-2 border-dashed border-white/20">
+                      {selectedAvatar ? (
+                        <AvatarImage src={selectedAvatar} alt="Selected Avatar" />
+                      ) : null}
+                      <AvatarFallback className="bg-transparent">
+                        <User className="h-10 w-10 text-slate-400" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex gap-4">
+                      {defaultAvatars.map((avatarUrl) => (
+                        <button
+                          key={avatarUrl}
+                          type="button"
+                          onClick={() => handleAvatarSelect(avatarUrl)}
+                          className={cn(
+                            'rounded-full transition-all focus:outline-none',
+                            selectedAvatar === avatarUrl
+                              ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                              : 'ring-1 ring-transparent hover:ring-1 hover:ring-primary/50'
+                          )}
+                        >
+                          <Avatar className="h-16 w-16">
+                            <AvatarImage src={avatarUrl} />
+                            <AvatarFallback>
+                              <User />
+                            </AvatarFallback>
+                          </Avatar>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
               <div className="space-y-2">
                 <Label htmlFor="displayName" className="text-slate-300">Display Name</Label>
                 <Input id="displayName" {...form.register('displayName')} placeholder="Your Name" className="bg-white/5 border-white/20"/>
