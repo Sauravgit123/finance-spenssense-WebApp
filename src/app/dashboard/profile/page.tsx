@@ -23,7 +23,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Image from 'next/image';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -37,8 +36,6 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-const avatarSeeds = ['Jasper', 'Sophie', 'Caleb', 'Eliza', 'Leo', 'Nora', 'Finn', 'Aria', 'Owen', 'Ivy', 'Milo', 'Luna', 'Theo', 'Isla', 'Henry', 'Mia', 'Arthur', 'Chloe', 'Julian', 'Stella'];
-
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const db = useFirestore();
@@ -51,7 +48,6 @@ export default function ProfilePage() {
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -108,15 +104,8 @@ export default function ProfilePage() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
-      setSelectedAvatar(null);
       setImagePreview(URL.createObjectURL(file));
     }
-  };
-  
-  const handleAvatarSelect = (avatarUrl: string) => {
-    setSelectedAvatar(avatarUrl);
-    setImageFile(null);
-    setImagePreview(avatarUrl);
   };
 
   const uploadImage = async (file: File): Promise<string> => {
@@ -131,12 +120,10 @@ export default function ProfilePage() {
     setIsUpdating(true);
 
     try {
-      let photoURL = imagePreview;
+      let photoURL = '';
 
       if (imageFile) {
         photoURL = await uploadImage(imageFile);
-      } else if (selectedAvatar) {
-        photoURL = selectedAvatar;
       }
       
       await updateProfile(user, { displayName: data.displayName, photoURL });
@@ -160,7 +147,9 @@ export default function ProfilePage() {
 
       setUserData(prev => prev ? { ...prev, ...updatedData } as UserData : updatedData as UserData);
       setImageFile(null);
-      setSelectedAvatar(null);
+      if (!photoURL) {
+        setImagePreview(null);
+      }
 
       toast({
         title: 'Profile Updated',
@@ -237,33 +226,6 @@ export default function ProfilePage() {
                     <Textarea id="bio" {...form.register('bio')} placeholder="Tell us about yourself..." className="bg-white/5 border-white/20"/>
                      {form.formState.errors.bio && <p className="text-red-400 text-sm mt-1">{form.formState.errors.bio.message}</p>}
                 </div>
-                
-                 <div className="space-y-2">
-                    <Label className="text-slate-300">Choose an Avatar</Label>
-                    <ScrollArea className="w-full">
-                      <div className="flex space-x-4 pb-4">
-                        {avatarSeeds.map((seed) => {
-                          const avatarUrl = `https://api.dicebear.com/8.x/micah/svg?seed=${seed}&backgroundColor=transparent`;
-                          return (
-                            <div key={seed} className="flex-shrink-0" onClick={() => handleAvatarSelect(avatarUrl)}>
-                              <Image
-                                src={avatarUrl}
-                                alt={`Avatar ${seed}`}
-                                width={80}
-                                height={80}
-                                className={cn(
-                                  "rounded-full cursor-pointer border-2 transition-all",
-                                  selectedAvatar === avatarUrl ? 'border-primary' : 'border-transparent hover:border-white/50'
-                                )}
-                              />
-                            </div>
-                          )
-                        })}
-                      </div>
-                      <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
-                </div>
-
 
                 <div className="border-t border-white/10 pt-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
