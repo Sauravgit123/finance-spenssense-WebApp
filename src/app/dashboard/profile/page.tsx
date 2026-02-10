@@ -21,7 +21,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -37,31 +36,6 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-const AI_AVATARS = [
-  // Female-presenting
-  'https://api.dicebear.com/8.x/micah/svg?seed=Zoe&backgroundColor=d1d4f9,c0aede,b6e3f4',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Luna&backgroundColor=d1d4f9,c0aede,b6e3f4',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Sophie&backgroundColor=d1d4f9,c0aede,b6e3f4',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Mia&backgroundColor=d1d4f9,c0aede,b6e3f4',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Lily&backgroundColor=d1d4f9,c0aede,b6e3f4',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Isabella&backgroundColor=d1d4f9,c0aede,b6e3f4',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Grace&backgroundColor=d1d4f9,c0aede,b6e3f4',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Chloe&backgroundColor=d1d4f9,c0aede,b6e3f4',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Bella&backgroundColor=d1d4f9,c0aede,b6e3f4',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Ava&backgroundColor=d1d4f9,c0aede,b6e3f4',
-  // Male-presenting
-  'https://api.dicebear.com/8.x/micah/svg?seed=Max&backgroundColor=b6e3f4,c0aede,d1d4f9',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Leo&backgroundColor=b6e3f4,c0aede,d1d4f9',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Sam&backgroundColor=b6e3f4,c0aede,d1d4f9',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Charlie&backgroundColor=b6e3f4,c0aede,d1d4f9',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Jack&backgroundColor=b6e3f4,c0aede,d1d4f9',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Toby&backgroundColor=b6e3f4,c0aede,d1d4f9',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Oliver&backgroundColor=b6e3f4,c0aede,d1d4f9',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Cody&backgroundColor=b6e3f4,c0aede,d1d4f9',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Milo&backgroundColor=b6e3f4,c0aede,d1d4f9',
-  'https://api.dicebear.com/8.x/micah/svg?seed=Rocky&backgroundColor=b6e3f4,c0aede,d1d4f9',
-];
-
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
@@ -76,7 +50,6 @@ export default function ProfilePage() {
 
   // State for image handling
   const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [selectedAvatar, setSelectedAvatar] = useState<string>('');
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
   
   const form = useForm<ProfileFormValues>({
@@ -106,9 +79,6 @@ export default function ProfilePage() {
             savingsGoal: data.savingsGoal || 0,
           });
           setPreviewUrl(data.photoURL || '');
-          if (data.photoURL && AI_AVATARS.includes(data.photoURL)) {
-            setSelectedAvatar(data.photoURL);
-          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -129,7 +99,6 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (file) {
       setNewImageFile(file);
-      setSelectedAvatar('');
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result as string);
@@ -143,19 +112,6 @@ export default function ProfilePage() {
     setIsUpdating(true);
 
     try {
-        let photoURLForUpdate: string | undefined = undefined;
-
-        if (newImageFile) {
-            const filePath = `profile-pictures/${user.uid}/${newImageFile.name}`;
-            const imageRef = storageRef(storage, filePath);
-            await uploadBytes(imageRef, newImageFile);
-            photoURLForUpdate = await getDownloadURL(imageRef);
-        } else {
-            if (previewUrl !== userData?.photoURL) {
-                photoURLForUpdate = previewUrl;
-            }
-        }
-
         const updatedData: Partial<UserData> = {
             displayName: data.displayName,
             bio: data.bio,
@@ -163,15 +119,23 @@ export default function ProfilePage() {
             savingsGoal: data.savingsGoal ?? 0,
         };
 
-        const authProfileUpdate: { displayName: string; photoURL?: string } = {
+        const authProfileUpdate: { displayName: string; photoURL?: string | null } = {
             displayName: data.displayName,
         };
 
-        if (photoURLForUpdate !== undefined) {
-            updatedData.photoURL = photoURLForUpdate;
-            authProfileUpdate.photoURL = photoURLForUpdate;
+        if (newImageFile) {
+            const filePath = `profile-pictures/${user.uid}/${newImageFile.name}`;
+            const imageRef = storageRef(storage, filePath);
+            await uploadBytes(imageRef, newImageFile);
+            const newPhotoURL = await getDownloadURL(imageRef);
+            updatedData.photoURL = newPhotoURL;
+            authProfileUpdate.photoURL = newPhotoURL;
+        } else if (previewUrl === '' && userData?.photoURL) {
+            // User cleared the image
+            updatedData.photoURL = '';
+            authProfileUpdate.photoURL = null; // This deletes the photoURL from Auth user
         }
-
+        
         await updateProfile(user, authProfileUpdate);
         
         const userDocRef = doc(db, 'users', user.uid);
@@ -182,7 +146,6 @@ export default function ProfilePage() {
                 requestResourceData: updatedData,
             });
             errorEmitter.emit('permission-error', permissionError);
-            throw permissionError;
         });
 
         toast({
@@ -269,7 +232,6 @@ export default function ProfilePage() {
                       className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => {
                           setPreviewUrl('');
-                          setSelectedAvatar('');
                           setNewImageFile(null);
                           if (fileInputRef.current) fileInputRef.current.value = '';
                       }}
@@ -291,38 +253,7 @@ export default function ProfilePage() {
                     <Textarea id="bio" {...form.register('bio')} placeholder="Tell us about yourself..." className="bg-white/5 border-white/20"/>
                      {form.formState.errors.bio && <p className="text-red-400 text-sm mt-1">{form.formState.errors.bio.message}</p>}
                 </div>
-
-                <div className="space-y-2 pt-6 border-t border-white/10">
-                    <Label className="text-slate-300">Or choose an avatar</Label>
-                    <ScrollArea className="w-full">
-                        <div className="flex space-x-4 pb-4">
-                        {AI_AVATARS.map((avatarUrl) => (
-                            <button
-                                key={avatarUrl}
-                                type="button"
-                                onClick={() => {
-                                    setPreviewUrl(avatarUrl);
-                                    setSelectedAvatar(avatarUrl);
-                                    setNewImageFile(null);
-                                }}
-                                className={cn(
-                                    'rounded-full ring-2 ring-transparent focus:outline-none transition-all p-1',
-                                    previewUrl === avatarUrl && newImageFile === null ? 'ring-primary bg-primary/20' : 'ring-transparent hover:ring-primary/50'
-                                )}
-                            >
-                                <Avatar className="h-16 w-16">
-                                    <AvatarImage src={avatarUrl} />
-                                    <AvatarFallback>
-                                        <User />
-                                    </AvatarFallback>
-                                </Avatar>
-                            </button>
-                        ))}
-                        </div>
-                        <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
-                </div>
-
+                
                 <div className="border-t border-white/10 pt-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
