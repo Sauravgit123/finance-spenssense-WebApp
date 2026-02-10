@@ -20,7 +20,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import placeholderImageData from '@/lib/placeholder-images.json';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -42,7 +41,6 @@ export default function ProfilePage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -74,7 +72,6 @@ export default function ProfilePage() {
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
-          setSelectedAvatar(data.photoURL || null);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -98,19 +95,17 @@ export default function ProfilePage() {
     try {
         const userDocRef = doc(db, 'users', user.uid);
         
-        const newPhotoURL = selectedAvatar;
-
         const updatedData: Partial<UserData> = {
             displayName: data.displayName,
             bio: data.bio,
             currency: data.currency,
             savingsGoal: data.savingsGoal ?? 0,
-            photoURL: newPhotoURL,
+            photoURL: null,
         };
         
         const authProfileUpdate = {
             displayName: data.displayName,
-            photoURL: newPhotoURL,
+            photoURL: null,
         };
 
         await updateProfile(user, authProfileUpdate);
@@ -130,14 +125,6 @@ export default function ProfilePage() {
         });
     } finally {
         setIsUpdating(false);
-    }
-  };
-
-  const handleAvatarSelect = (url: string) => {
-    if (selectedAvatar === url) {
-      setSelectedAvatar(null); // Deselect if already selected
-    } else {
-      setSelectedAvatar(url);
     }
   };
 
@@ -175,39 +162,11 @@ export default function ProfilePage() {
       <Card className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg rounded-2xl">
         <CardHeader>
           <CardTitle>User Profile</CardTitle>
-          <CardDescription>Manage your profile and settings. Choose a default avatar or leave it blank.</CardDescription>
+          <CardDescription>Manage your profile and settings.</CardDescription>
         </CardHeader>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="p-6 md:p-8">
             <div className="w-full space-y-6">
-              <div className="space-y-4">
-                <Label className="text-slate-300">Choose Avatar</Label>
-                <div className="flex gap-4">
-                  {placeholderImageData.avatars.map((avatar) => {
-                    const url = avatar.url;
-                    return (
-                      <button
-                        type="button"
-                        key={avatar.url}
-                        onClick={() => handleAvatarSelect(url)}
-                        className={cn(
-                          'rounded-full overflow-hidden transition-all duration-200 border-4 p-1 bg-white/10',
-                          selectedAvatar === url
-                            ? 'border-primary shadow-lg scale-110'
-                            : 'border-transparent hover:border-primary/50'
-                        )}
-                      >
-                        <Avatar className="h-20 w-20">
-                          <AvatarImage src={url} alt={avatar.hint} data-ai-hint={avatar.hint} />
-                          <AvatarFallback>
-                            <User className="h-10 w-10" />
-                          </AvatarFallback>
-                        </Avatar>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
               
               <div className="space-y-2">
                 <Label htmlFor="displayName" className="text-slate-300">Display Name</Label>
