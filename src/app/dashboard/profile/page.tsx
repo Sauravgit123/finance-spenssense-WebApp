@@ -239,7 +239,7 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center space-y-4">
               <div className="relative group">
                 <Avatar className="w-32 h-32 border-4 border-white/20">
-                    <AvatarImage src={previewUrl} alt="User profile" />
+                    <AvatarImage src={previewUrl || null} alt="User profile" />
                     <AvatarFallback className="bg-muted">
                         <User className="text-muted-foreground h-16 w-16" />
                     </AvatarFallback>
