@@ -1,0 +1,16 @@
+{
+  "avatars": [
+    {
+      "id": "boy",
+      "url": "https://picsum.photos/seed/boy-avatar/400/400",
+      "alt": "Boy Avatar",
+      "hint": "boy face"
+    },
+    {
+      "id": "girl",
+      "url": "https://picsum.photos/seed/girl-avatar/400/400",
+      "alt": "Girl Avatar",
+      "hint": "girl face"
+    }
+  ]
+}

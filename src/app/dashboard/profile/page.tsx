@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,7 +19,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
+import avatarData from '@/lib/placeholder-images.json';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -40,6 +43,9 @@ export default function ProfilePage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedPhotoURL, setSelectedPhotoURL] = useState<string | null>(null);
+
+  const { avatars } = avatarData;
   
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -71,6 +77,7 @@ export default function ProfilePage() {
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
+          setSelectedPhotoURL(data.photoURL || null);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -92,27 +99,28 @@ export default function ProfilePage() {
     setIsUpdating(true);
 
     try {
-        // Unconditionally remove the photoURL from both Firestore and Auth
         const userDocRef = doc(db, 'users', user.uid);
+        const newPhotoURL = selectedPhotoURL;
+
         const updatedData: Partial<UserData> = {
             displayName: data.displayName,
             bio: data.bio,
             currency: data.currency,
             savingsGoal: data.savingsGoal ?? 0,
-            photoURL: '', // Unconditionally set to empty string to delete from Firestore
+            photoURL: newPhotoURL || '',
         };
+        
         const authProfileUpdate = {
             displayName: data.displayName,
-            photoURL: null, // Unconditionally set to null to delete from Auth
+            photoURL: newPhotoURL,
         };
 
-        // Execute both updates
         await updateProfile(user, authProfileUpdate);
         await updateDoc(userDocRef, updatedData);
 
         toast({
             title: 'Profile Updated',
-            description: 'Your changes have been saved and the profile picture has been permanently removed.',
+            description: 'Your changes have been saved.',
         });
 
     } catch (error) {
@@ -158,9 +166,10 @@ export default function ProfilePage() {
         </CardHeader>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="p-6 md:p-8">
-            <div className="flex flex-col items-center space-y-4">
+            <div className="flex flex-col items-center space-y-6">
               <div className="relative group">
                 <Avatar className="w-32 h-32 border-4 border-white/20">
+                    <AvatarImage src={selectedPhotoURL || null} alt={user?.displayName || ''} />
                     <AvatarFallback className="bg-muted">
                         <User className="text-muted-foreground h-16 w-16" />
                     </AvatarFallback>
@@ -168,6 +177,32 @@ export default function ProfilePage() {
               </div>
 
               <div className="w-full space-y-6">
+                <div className="space-y-2">
+                    <Label className="text-slate-300">Choose Avatar</Label>
+                    <div className="flex gap-4">
+                        {avatars.map((avatar) => (
+                            <button
+                                key={avatar.id}
+                                type="button"
+                                className={cn(
+                                    "rounded-full border-4 transition-all",
+                                    selectedPhotoURL === avatar.url ? "border-primary" : "border-transparent hover:border-primary/50"
+                                )}
+                                onClick={() => setSelectedPhotoURL(selectedPhotoURL === avatar.url ? null : avatar.url)}
+                            >
+                                <Image
+                                    src={avatar.url}
+                                    alt={avatar.alt}
+                                    width={80}
+                                    height={80}
+                                    className="rounded-full"
+                                    data-ai-hint={avatar.hint}
+                                />
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                  <div className="space-y-2">
                     <Label htmlFor="displayName" className="text-slate-300">Display Name</Label>
                     <Input id="displayName" {...form.register('displayName')} placeholder="Your Name" className="bg-white/5 border-white/20"/>
