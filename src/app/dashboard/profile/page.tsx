@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAuth } from '@/firebase/auth-provider';
@@ -242,7 +242,7 @@ export default function ProfilePage() {
         const storageRef = ref(storage, filePath);
         const uploadResult = await uploadBytes(storageRef, imageFile);
         newPhotoURL = await getDownloadURL(uploadResult.ref);
-      } else if (imagePreview === null && (user.photoURL || (await getDoc(doc(db, 'users', user.uid))).data()?.photoURL)) {
+      } else if (imagePreview === null && user.photoURL) {
         // Image was removed, delete from storage if it exists
         newPhotoURL = null;
         try {
@@ -270,7 +270,7 @@ export default function ProfilePage() {
         displayName: data.displayName,
         photoURL: newPhotoURL,
       });
-      await updateDoc(userDocRef, updatedData);
+      await setDoc(userDocRef, updatedData, { merge: true });
 
       forceUpdate();
 
