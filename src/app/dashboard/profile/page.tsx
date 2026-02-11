@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAuth } from '@/firebase/auth-provider';
-import { useFirestore } from '@/firebase/provider';
-import { Loader2, User } from 'lucide-react';
+import { useFirestore, useFirebaseStorage } from '@/firebase/provider';
+import { Loader2, User, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { UserData } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { cn } from '@/lib/utils';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -33,19 +33,16 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-const defaultAvatars = [
-  'https://api.dicebear.com/8.x/micah/svg?seed=boy-avatar-seed', // Boy
-  'https://api.dicebear.com/8.x/micah/svg?seed=girl-avatar-seed' // Girl
-];
-
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const db = useFirestore();
+  const storage = useFirebaseStorage();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -77,12 +74,12 @@ export default function ProfilePage() {
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
-          setSelectedAvatar(data.photoURL || null);
+          setAvatarPreview(data.photoURL || null);
         } else {
              form.reset({
                 displayName: user.displayName || '',
              });
-             setSelectedAvatar(user.photoURL || null);
+             setAvatarPreview(user.photoURL || null);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -99,17 +96,70 @@ export default function ProfilePage() {
     fetchUserData();
   }, [user, authLoading, db, form, toast]);
   
-  const handleAvatarSelect = (url: string) => {
-    setSelectedAvatar(prev => (prev === url ? null : url));
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setAvatarPreview(previewUrl);
+    }
+  };
+
+  const handleRemovePicture = async () => {
+    if (!user) return;
+    
+    const oldPhotoURL = user.photoURL;
+    if (!oldPhotoURL && !avatarPreview) return; // Nothing to remove
+
+    setIsUpdating(true);
+
+    try {
+        await updateProfile(user, { photoURL: "" });
+        const userDocRef = doc(db, 'users', user.uid);
+        await updateDoc(userDocRef, { photoURL: "" });
+
+        if (oldPhotoURL && oldPhotoURL.includes('firebasestorage.googleapis.com')) {
+            try {
+                const oldStorageRef = ref(storage, oldPhotoURL);
+                await deleteObject(oldStorageRef);
+            } catch (storageError: any) {
+                if (storageError.code !== 'storage/object-not-found') {
+                    console.warn("Could not delete old avatar from storage:", storageError);
+                }
+            }
+        }
+        
+        setAvatarFile(null);
+        setAvatarPreview(null);
+        toast({
+            title: 'Picture Removed',
+            description: 'Your profile picture has been removed.',
+        });
+    } catch(error) {
+        console.error("Error removing picture:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not remove your profile picture.',
+        });
+    } finally {
+        setIsUpdating(false);
+    }
   };
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) return;
     setIsUpdating(true);
 
-    const photoURLToUpdate = selectedAvatar;
+    let newPhotoURL = user.photoURL;
 
     try {
+        if (avatarFile) {
+            const storageRef = ref(storage, `profile-pictures/${user.uid}`);
+            await uploadBytes(storageRef, avatarFile);
+            newPhotoURL = await getDownloadURL(storageRef);
+        }
+
         const userDocRef = doc(db, 'users', user.uid);
         
         const updatedData: Partial<UserData> = {
@@ -117,14 +167,16 @@ export default function ProfilePage() {
             bio: data.bio,
             currency: data.currency,
             savingsGoal: data.savingsGoal ?? 0,
-            photoURL: photoURLToUpdate,
+            photoURL: newPhotoURL,
         };
         
         await updateProfile(user, {
             displayName: data.displayName,
-            photoURL: photoURLToUpdate,
+            photoURL: newPhotoURL,
         });
         await updateDoc(userDocRef, updatedData);
+
+        setAvatarFile(null);
 
         toast({
             title: 'Profile Updated',
@@ -184,37 +236,28 @@ export default function ProfilePage() {
             <div className="w-full space-y-6">
               
               <div className="space-y-4">
-                  <Label className="text-slate-300">Choose Avatar</Label>
+                  <Label className="text-slate-300">Profile Picture</Label>
                   <div className="flex items-center gap-6">
                     <Avatar className="h-24 w-24 border-2 border-dashed border-white/20">
-                      {selectedAvatar ? (
-                        <AvatarImage src={selectedAvatar} alt="Selected Avatar" />
-                      ) : null}
+                      <AvatarImage src={avatarPreview || undefined} alt="User Avatar" />
                       <AvatarFallback className="bg-transparent">
                         <User className="h-10 w-10 text-slate-400" />
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex gap-4">
-                      {defaultAvatars.map((avatarUrl) => (
-                        <button
-                          key={avatarUrl}
-                          type="button"
-                          onClick={() => handleAvatarSelect(avatarUrl)}
-                          className={cn(
-                            'rounded-full transition-all focus:outline-none',
-                            selectedAvatar === avatarUrl
-                              ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
-                              : 'ring-1 ring-transparent hover:ring-1 hover:ring-primary/50'
-                          )}
-                        >
-                          <Avatar className="h-16 w-16">
-                            <AvatarImage src={avatarUrl} />
-                            <AvatarFallback>
-                              <User />
-                            </AvatarFallback>
-                          </Avatar>
-                        </button>
-                      ))}
+                    <div className="flex flex-col gap-2">
+                        <Button asChild variant="outline" className="relative">
+                            <label htmlFor="avatar-upload" className="cursor-pointer">
+                                <Upload className="mr-2 h-4 w-4" />
+                                Upload Picture
+                                <Input id="avatar-upload" type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileChange} />
+                            </label>
+                        </Button>
+                        {(avatarPreview || user?.photoURL) && (
+                            <Button variant="destructive" type="button" onClick={handleRemovePicture} disabled={isUpdating}>
+                                <X className="mr-2 h-4 w-4" />
+                                Remove
+                            </Button>
+                        )}
                     </div>
                   </div>
                 </div>
