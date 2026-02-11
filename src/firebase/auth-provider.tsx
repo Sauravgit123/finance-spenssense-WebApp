@@ -10,6 +10,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   logout: () => Promise<void>;
+  forceUpdate: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,6 +41,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // onAuthStateChanged will handle re-rendering
   }, [auth, router]);
   
+  const forceUpdate = useCallback(() => {
+    setVersion(v => v + 1);
+  }, []);
+  
   // By getting the user directly from the auth instance, we ensure we always have the
   // "live" user object, preventing stale data and issues with corrupted state.
   const user = auth.currentUser;
@@ -56,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider value={{ user, loading, logout, forceUpdate }}>
       {children}
     </AuthContext.Provider>
   );
