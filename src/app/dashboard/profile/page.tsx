@@ -71,7 +71,7 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
-  const { user, loading: authLoading, forceUpdate } = useAuth();
+  const { user, loading: authLoading, forceUpdate, version } = useAuth();
   const db = useFirestore();
   const storage = useFirebaseStorage();
   const { toast } = useToast();
@@ -110,6 +110,7 @@ export default function ProfilePage() {
     }
 
     const fetchUserData = async () => {
+      setIsLoading(true);
       const userDocRef = doc(db, 'users', user.uid);
       try {
         const docSnap = await getDoc(userDocRef);
@@ -123,11 +124,14 @@ export default function ProfilePage() {
           });
           if (data.photoURL) {
             setImagePreview(data.photoURL);
+          } else {
+            setImagePreview(null);
           }
         } else {
           form.reset({
             displayName: user.displayName || '',
           });
+           setImagePreview(null);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -142,7 +146,7 @@ export default function ProfilePage() {
     };
 
     fetchUserData();
-  }, [user, authLoading, db, form, toast]);
+  }, [user, authLoading, db, form, toast, version]);
 
   const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {

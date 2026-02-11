@@ -11,6 +11,7 @@ interface AuthContextType {
   loading: boolean;
   logout: () => Promise<void>;
   forceUpdate: () => void;
+  version: number;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,7 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const auth = useFirebaseAuth();
   const [loading, setLoading] = useState(true);
-  const [, setVersion] = useState(0);
+  const [version, setVersion] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -61,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout, forceUpdate }}>
+    <AuthContext.Provider value={{ user, loading, logout, forceUpdate, version }}>
       {children}
     </AuthContext.Provider>
   );
