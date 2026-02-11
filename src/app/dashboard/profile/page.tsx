@@ -203,52 +203,52 @@ export default function ProfilePage() {
     if (!user) return;
     setIsUpdating(true);
 
-    let finalPhotoURL: string | null = userData?.photoURL || null;
-
     try {
-      // Step 1: Handle image upload/removal
+      // Start with the current photoURL from the most reliable source (userData or user)
+      let photoURLToUpdate: string | null = userData?.photoURL || user.photoURL || null;
+
+      // Step 1: Handle new image upload
       if (imageFile) {
-        // New file selected, upload it
         const filePath = `profile-pictures/${user.uid}/profile.jpg`;
         const storageRef = ref(storage, filePath);
         const uploadResult = await uploadBytes(storageRef, imageFile);
-        finalPhotoURL = await getDownloadURL(uploadResult.ref);
-      } else if (imagePreview === null && userData?.photoURL) {
-        // Image was removed via the "Remove" button, and there was a URL before
-        finalPhotoURL = null;
+        photoURLToUpdate = await getDownloadURL(uploadResult.ref);
+      } 
+      // Step 2: Handle image removal
+      else if (imagePreview === null && photoURLToUpdate) {
+        // Image was removed via the button, and there was a URL before
+        const filePath = `profile-pictures/${user.uid}/profile.jpg`;
+        const storageRef = ref(storage, filePath);
         try {
-            const filePath = `profile-pictures/${user.uid}/profile.jpg`;
-            const storageRef = ref(storage, filePath);
             await deleteObject(storageRef);
-        } catch(error: any) {
+        } catch (error: any) {
+            // Ignore if the object doesn't exist, but log other errors
             if (error.code !== 'storage/object-not-found') {
                 console.warn("Could not delete old profile picture:", error);
             }
         }
+        photoURLToUpdate = null;
       }
-
-      // Step 2: Prepare the data payload for Firestore.
-      const userDocRef = doc(db, 'users', user.uid);
-      const dataToSave = {
+      
+      // Step 3: Prepare data for Auth and Firestore
+      const profileUpdates = {
         displayName: data.displayName,
+        photoURL: photoURLToUpdate,
+      };
+
+      const firestoreData = {
+        ...profileUpdates,
         bio: data.bio,
         currency: data.currency,
         savingsGoal: data.savingsGoal ?? 0,
-        photoURL: finalPhotoURL,
       };
 
-      // Step 3: Update Firestore document using setDoc with merge to prevent overwriting other fields.
-      await setDoc(userDocRef, dataToSave, { merge: true });
+      // Step 4: Update Firebase Auth Profile & Firestore Document
+      await updateProfile(user, profileUpdates);
+      const userDocRef = doc(db, 'users', user.uid);
+      await setDoc(userDocRef, firestoreData, { merge: true });
 
-      // Step 4: Update Firebase Auth profile to keep it in sync.
-      if (user.displayName !== data.displayName || user.photoURL !== finalPhotoURL) {
-         await updateProfile(user, {
-            displayName: data.displayName,
-            photoURL: finalPhotoURL,
-        });
-      }
-
-      // Step 5: Manually refresh the user data in the app's context to force UI updates.
+      // Step 5: Manually trigger a refresh of the user data context
       await refreshUserData();
 
       toast({
@@ -256,17 +256,18 @@ export default function ProfilePage() {
         description: 'Your profile has been successfully updated.',
       });
 
-      // Clear the temporary file object after successful upload
+      // Clear the temporary file object
       setImageFile(null); 
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    } catch (error) {
+
+    } catch (error: any) {
       console.error('Error updating profile:', error);
       toast({
         variant: 'destructive',
         title: 'Update Failed',
-        description: 'There was an error updating your profile.',
+        description: error.message || 'There was an error updating your profile.',
       });
     } finally {
       setIsUpdating(false);

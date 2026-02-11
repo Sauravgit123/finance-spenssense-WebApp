@@ -13,7 +13,7 @@ interface AuthContextType {
   userData: UserData | null;
   loading: boolean;
   logout: () => Promise<void>;
-  refreshUserData: () => Promise<void>; // Add this function
+  refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -70,16 +70,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
     
-    // The user object in state will be updated by onAuthStateChanged,
-    // but we can manually re-fetch the firestore doc for immediate UI update.
+    // Manually reload the user's profile from Firebase Auth servers
+    await currentUser.reload();
+    // After reloading, onAuthStateChanged will fire with the latest user object.
+    // We can also re-fetch the firestore doc for a more immediate UI update
+    // for components that rely on `userData`.
     const userDocRef = doc(db, 'users', currentUser.uid);
     const docSnap = await getDoc(userDocRef);
     if (docSnap.exists()) {
       setUserData(docSnap.data() as UserData);
     }
-
-    // Also update the user state with the latest from auth, in case displayName/photoURL changed
-    setUser({ ...currentUser });
   }, [auth, db]);
   
   if (loading && !['/login', '/signup'].includes(pathname)) {
