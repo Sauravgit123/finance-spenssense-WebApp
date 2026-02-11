@@ -203,8 +203,6 @@ export default function ProfilePage() {
     if (!user) return;
     setIsUpdating(true);
 
-    // This is the definitive URL that will be saved to the database.
-    // Start with the current URL from the database.
     let finalPhotoURL: string | null = userData?.photoURL || null;
 
     try {
@@ -215,8 +213,8 @@ export default function ProfilePage() {
         const storageRef = ref(storage, filePath);
         const uploadResult = await uploadBytes(storageRef, imageFile);
         finalPhotoURL = await getDownloadURL(uploadResult.ref);
-      } else if (imagePreview === null) {
-        // Image was removed via the "Remove" button
+      } else if (imagePreview === null && userData?.photoURL) {
+        // Image was removed via the "Remove" button, and there was a URL before
         finalPhotoURL = null;
         try {
             const filePath = `profile-pictures/${user.uid}/profile.jpg`;
@@ -229,21 +227,20 @@ export default function ProfilePage() {
         }
       }
 
-      // Step 2: Update Firestore document
+      // Step 2: Prepare the data payload for Firestore.
       const userDocRef = doc(db, 'users', user.uid);
-      const updatedData: UserData = {
-        ...(userData || {}), // Start with existing data
+      const dataToSave = {
         displayName: data.displayName,
         bio: data.bio,
         currency: data.currency,
         savingsGoal: data.savingsGoal ?? 0,
         photoURL: finalPhotoURL,
-        income: userData?.income || 0,
       };
-      await setDoc(userDocRef, updatedData, { merge: true });
 
-      // Step 3: Update Firebase Auth profile
-      // Only update if there are changes to avoid unnecessary operations
+      // Step 3: Update Firestore document using setDoc with merge to prevent overwriting other fields.
+      await setDoc(userDocRef, dataToSave, { merge: true });
+
+      // Step 4: Update Firebase Auth profile to keep it in sync.
       if (user.displayName !== data.displayName || user.photoURL !== finalPhotoURL) {
          await updateProfile(user, {
             displayName: data.displayName,
