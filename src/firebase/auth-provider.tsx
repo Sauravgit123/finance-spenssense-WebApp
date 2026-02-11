@@ -11,24 +11,22 @@ interface AuthContextType {
   loading: boolean;
   logout: () => Promise<void>;
   forceUpdate: () => void;
-  version: number;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const auth = useFirebaseAuth();
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [version, setVersion] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
       setLoading(false);
-      // Force a re-render to ensure consumers get the latest user object from auth.currentUser
-      setVersion(v => v + 1); 
-      if (!user && !['/login', '/signup'].includes(pathname)) {
+      if (!firebaseUser && !['/login', '/signup'].includes(pathname)) {
         router.push('/login');
       }
     });
@@ -39,16 +37,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     await signOut(auth);
     router.push('/login');
-    // onAuthStateChanged will handle re-rendering
   }, [auth, router]);
   
   const forceUpdate = useCallback(() => {
-    setVersion(v => v + 1);
-  }, []);
-  
-  // By getting the user directly from the auth instance, we ensure we always have the
-  // "live" user object, preventing stale data and issues with corrupted state.
-  const user = auth.currentUser;
+    // This triggers a reload of the user's profile from Firebase.
+    // onAuthStateChanged will then fire with the updated user data,
+    // which updates our state and causes a re-render across the app.
+    auth.currentUser?.reload().catch((error) => {
+      console.error("Error reloading user:", error);
+    });
+  }, [auth]);
 
   if (loading) {
     return (
@@ -62,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout, forceUpdate, version }}>
+    <AuthContext.Provider value={{ user, loading, logout, forceUpdate }}>
       {children}
     </AuthContext.Provider>
   );
