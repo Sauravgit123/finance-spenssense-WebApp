@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { useFirebaseAuth, useFirestore } from './provider';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,6 +13,7 @@ interface AuthContextType {
   userData: UserData | null;
   loading: boolean;
   logout: () => Promise<void>;
+  refreshUserData: () => Promise<void>; // Add this function
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,47 +30,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      if (!firebaseUser && !['/login', '/signup'].includes(pathname)) {
-        router.push('/login');
+      if (!firebaseUser) {
+        setUserData(null);
+        setLoading(false);
+        if (!['/login', '/signup'].includes(pathname)) {
+          router.push('/login');
+        }
+        return;
       }
+
+      // User is signed in, set up Firestore listener
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      const unsubscribeSnapshot = onSnapshot(userDocRef, 
+        (doc) => {
+          if (doc.exists()) {
+            setUserData(doc.data() as UserData);
+          } else {
+            setUserData(null);
+          }
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Error fetching user data:", error);
+          setUserData(null);
+          setLoading(false);
+        }
+      );
+      return () => unsubscribeSnapshot();
     });
 
     return () => unsubscribeAuth();
-  }, [auth, router, pathname]);
-
-  useEffect(() => {
-    if (!user) {
-      setUserData(null);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    const userDocRef = doc(db, 'users', user.uid);
-    const unsubscribeSnapshot = onSnapshot(userDocRef, 
-      (doc) => {
-        if (doc.exists()) {
-          setUserData(doc.data() as UserData);
-        } else {
-          setUserData(null);
-        }
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error fetching user data:", error);
-        setUserData(null);
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribeSnapshot();
-  }, [user, db]);
+  }, [auth, db, router, pathname]);
 
   const logout = useCallback(async () => {
     await signOut(auth);
-    setUserData(null);
-    router.push('/login');
-  }, [auth, router]);
+  }, [auth]);
+
+  const refreshUserData = useCallback(async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+    
+    // The user object in state will be updated by onAuthStateChanged,
+    // but we can manually re-fetch the firestore doc for immediate UI update.
+    const userDocRef = doc(db, 'users', currentUser.uid);
+    const docSnap = await getDoc(userDocRef);
+    if (docSnap.exists()) {
+      setUserData(docSnap.data() as UserData);
+    }
+
+    // Also update the user state with the latest from auth, in case displayName/photoURL changed
+    setUser({ ...currentUser });
+  }, [auth, db]);
   
   if (loading && !['/login', '/signup'].includes(pathname)) {
     return (
@@ -83,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, userData, loading, logout }}>
+    <AuthContext.Provider value={{ user, userData, loading, logout, refreshUserData }}>
       {children}
     </AuthContext.Provider>
   );

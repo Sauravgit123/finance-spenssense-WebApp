@@ -71,7 +71,7 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
-  const { user, userData, loading: authLoading } = useAuth();
+  const { user, userData, loading: authLoading, refreshUserData } = useAuth();
   const db = useFirestore();
   const storage = useFirebaseStorage();
   const { toast } = useToast();
@@ -247,6 +247,9 @@ export default function ProfilePage() {
             photoURL: finalPhotoURL,
         });
       }
+
+      // Step 5: Manually refresh the user data in the app's context to force UI updates.
+      await refreshUserData();
 
       toast({
         title: 'Profile Updated',
