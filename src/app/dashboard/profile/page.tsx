@@ -59,8 +59,8 @@ function centerAspectCrop(
 
 
 const profileSchema = z.object({
-  displayName: z.string().min(2, 'Name must be at least 2 characters.'),
-  bio: z.string().max(160, 'Bio must be less than 160 characters.').optional(),
+  displayName: z.string().optional(),
+  bio: z.string().optional(),
   currency: z.string().optional(),
   savingsGoal: z.preprocess(
     (a) => (a === '' ? undefined : parseFloat(z.string().parse(a))),
@@ -237,10 +237,8 @@ export default function ProfilePage() {
       };
 
       const firestoreData = {
-        ...profileUpdates,
-        bio: data.bio,
-        currency: data.currency,
-        savingsGoal: data.savingsGoal ?? 0,
+        ...data,
+        photoURL: photoURLToUpdate,
       };
 
       // Step 4: Update Firebase Auth Profile & Firestore Document
