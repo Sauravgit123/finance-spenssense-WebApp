@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAuth } from '@/firebase/auth-provider';
@@ -71,15 +71,16 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
-  const { user, loading: authLoading, forceUpdate, version } = useAuth();
+  const { user, userData, loading: authLoading } = useAuth();
   const db = useFirestore();
   const storage = useFirebaseStorage();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  
+  // This state holds the URL for the visual preview of the image. It's updated immediately.
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Cropping state
@@ -102,51 +103,21 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    if (authLoading) return;
-
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchUserData = async () => {
-      setIsLoading(true);
-      const userDocRef = doc(db, 'users', user.uid);
-      try {
-        const docSnap = await getDoc(userDocRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data() as UserData;
-          form.reset({
-            displayName: data.displayName || user.displayName || '',
-            bio: data.bio || '',
-            currency: data.currency || 'USD',
-            savingsGoal: data.savingsGoal || 0,
-          });
-          if (data.photoURL) {
-            setImagePreview(data.photoURL);
-          } else {
-            setImagePreview(null);
-          }
-        } else {
-          form.reset({
+    if (userData) {
+      form.reset({
+        displayName: userData.displayName || '',
+        bio: userData.bio || '',
+        currency: userData.currency || 'USD',
+        savingsGoal: userData.savingsGoal || 0,
+      });
+      setImagePreview(userData.photoURL || null);
+    } else if (user) {
+        form.reset({
             displayName: user.displayName || '',
-          });
-           setImagePreview(null);
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Could not fetch your profile data.',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, [user, authLoading, db, form, toast, version]);
+        })
+        setImagePreview(user.photoURL || null);
+    }
+  }, [userData, user, form]);
 
   const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -205,7 +176,7 @@ export default function ProfilePage() {
   
     // Get cropped image as data URL and file
     const base64Image = canvas.toDataURL('image/jpeg', 1.0);
-    setImagePreview(base64Image);
+    setImagePreview(base64Image); // Update preview immediately
   
     canvas.toBlob((blob) => {
       if (!blob) {
@@ -213,7 +184,7 @@ export default function ProfilePage() {
         return;
       }
       const croppedFile = new File([blob], 'profile.jpg', { type: 'image/jpeg' });
-      setImageFile(croppedFile);
+      setImageFile(croppedFile); // Set the file to be uploaded on submit
     }, 'image/jpeg', 1.0);
   
     setIsCropModalOpen(false);
@@ -232,19 +203,21 @@ export default function ProfilePage() {
     if (!user) return;
     setIsUpdating(true);
 
-    let newPhotoURL: string | null = imagePreview;
+    // This is the definitive URL that will be saved to the database.
+    // Start with the current URL from the database.
+    let finalPhotoURL: string | null = userData?.photoURL || null;
 
     try {
-      // Handle image upload/removal
+      // Step 1: Handle image upload/removal
       if (imageFile) {
         // New file selected, upload it
         const filePath = `profile-pictures/${user.uid}/profile.jpg`;
         const storageRef = ref(storage, filePath);
         const uploadResult = await uploadBytes(storageRef, imageFile);
-        newPhotoURL = await getDownloadURL(uploadResult.ref);
-      } else if (imagePreview === null && user.photoURL) {
-        // Image was removed, delete from storage if it exists
-        newPhotoURL = null;
+        finalPhotoURL = await getDownloadURL(uploadResult.ref);
+      } else if (imagePreview === null) {
+        // Image was removed via the "Remove" button
+        finalPhotoURL = null;
         try {
             const filePath = `profile-pictures/${user.uid}/profile.jpg`;
             const storageRef = ref(storage, filePath);
@@ -256,30 +229,35 @@ export default function ProfilePage() {
         }
       }
 
+      // Step 2: Update Firestore document
       const userDocRef = doc(db, 'users', user.uid);
-
-      const updatedData: Partial<UserData> = {
+      const updatedData: UserData = {
+        ...(userData || {}), // Start with existing data
         displayName: data.displayName,
         bio: data.bio,
         currency: data.currency,
         savingsGoal: data.savingsGoal ?? 0,
-        photoURL: newPhotoURL,
+        photoURL: finalPhotoURL,
+        income: userData?.income || 0,
       };
-
-      await updateProfile(user, {
-        displayName: data.displayName,
-        photoURL: newPhotoURL,
-      });
       await setDoc(userDocRef, updatedData, { merge: true });
 
-      forceUpdate();
+      // Step 3: Update Firebase Auth profile
+      // Only update if there are changes to avoid unnecessary operations
+      if (user.displayName !== data.displayName || user.photoURL !== finalPhotoURL) {
+         await updateProfile(user, {
+            displayName: data.displayName,
+            photoURL: finalPhotoURL,
+        });
+      }
 
       toast({
         title: 'Profile Updated',
         description: 'Your profile has been successfully updated.',
       });
 
-      setImageFile(null); // Clear the file object after upload
+      // Clear the temporary file object after successful upload
+      setImageFile(null); 
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -295,7 +273,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (authLoading || isLoading) {
+  if (authLoading) {
     return (
       <div className="container mx-auto p-4 md:p-8 flex items-center justify-center">
         <Card className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg rounded-2xl">

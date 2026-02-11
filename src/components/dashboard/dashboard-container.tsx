@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, doc, onSnapshot, query, orderBy, setDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/firebase/auth-provider';
 import { useFirestore } from '@/firebase/provider';
-import type { Expense, UserData } from '@/lib/types';
+import type { Expense } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BudgetCategoryCard } from './budget-category-card';
 import { AddExpenseForm } from './add-expense-form';
@@ -27,76 +27,43 @@ const formatCurrency = (amount: number) => {
 };
 
 export function DashboardContainer() {
-  const { user, loading } = useAuth();
+  const { user, userData, loading } = useAuth();
   const db = useFirestore();
-  const router = useRouter();
-  const [userData, setUserData] = useState<UserData | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [expensesLoading, setExpensesLoading] = useState(true);
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   
   useEffect(() => {
-    if (loading) return;
     if (!user) {
-      // AuthProvider handles redirect
+      setExpensesLoading(false);
       return;
     }
+    
+    // Show income modal if it's not set
+    if (!loading && userData && (!userData.income || userData.income === 0)) {
+        setIncomeModalOpen(true);
+    }
 
-    const userDocRef = doc(db, 'users', user.uid);
     const expensesColRef = collection(db, 'users', user.uid, 'expenses');
     const expensesQuery = query(expensesColRef, orderBy('createdAt', 'desc'));
-
-    const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
-      if (doc.exists()) {
-        const data = doc.data() as UserData;
-        setUserData(data);
-        if (!data.income || data.income === 0) {
-          setIncomeModalOpen(true);
-        }
-      } else {
-        // This case is now handled at signup, but kept as a fallback.
-        const initialData = { 
-          income: 0,
-          displayName: user.displayName || 'New User',
-          photoURL: user.photoURL || '',
-        };
-        setDoc(userDocRef, initialData).catch(serverError => {
-          const permissionError = new FirestorePermissionError({
-            path: userDocRef.path,
-            operation: 'create',
-            requestResourceData: initialData
-          });
-          errorEmitter.emit('permission-error', permissionError);
-        });
-        setUserData(initialData);
-        setIncomeModalOpen(true);
-      }
-      setDataLoading(false);
-    }, (error) => {
-        const permissionError = new FirestorePermissionError({
-          path: userDocRef.path,
-          operation: 'get',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        setDataLoading(false);
-    });
 
     const unsubscribeExpenses = onSnapshot(expensesQuery, (snapshot) => {
       const expensesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Expense[];
       setExpenses(expensesData);
+      setExpensesLoading(false);
     }, (error) => {
         const permissionError = new FirestorePermissionError({
           path: expensesColRef.path,
           operation: 'list',
         });
         errorEmitter.emit('permission-error', permissionError);
+        setExpensesLoading(false);
     });
 
     return () => {
-      unsubscribeUser();
       unsubscribeExpenses();
     };
-  }, [user, loading, router, db]);
+  }, [user, db, loading, userData]);
 
   const { needsTotal, wantsTotal, savingsTotal, needsSpent, wantsSpent, savingsSpent, totalSpent } = useMemo(() => {
     const income = userData?.income || 0;
@@ -112,7 +79,7 @@ export function DashboardContainer() {
     return { needsTotal, wantsTotal, savingsTotal, needsSpent, wantsSpent, savingsSpent, totalSpent };
   }, [userData, expenses]);
 
-  if (loading || dataLoading) {
+  if (loading || expensesLoading) {
     return (
       <div className="container mx-auto p-4 md:p-8">
         <Skeleton className="h-8 w-1/4 mb-6 bg-white/10" />
@@ -142,7 +109,7 @@ export function DashboardContainer() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user?.displayName || user?.email}!</p>
+          <p className="text-muted-foreground">Welcome back, {userData?.displayName || user?.email}!</p>
         </div>
         <div>
           <Button variant="outline" onClick={() => setIncomeModalOpen(true)}>

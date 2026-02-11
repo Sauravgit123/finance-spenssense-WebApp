@@ -14,9 +14,10 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/firebase/auth-provider';
 import { SpendSenseLogo } from './logo';
 import { LogOut, User } from 'lucide-react';
+import { Skeleton } from './ui/skeleton';
 
 export function Header() {
-  const { user, logout, loading } = useAuth();
+  const { user, userData, logout, loading } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b border-white/10 bg-slate-950/80 px-4 shadow-md backdrop-blur-sm md:px-6">
@@ -25,13 +26,13 @@ export function Header() {
       </Link>
       <div className="ml-auto">
         {loading ? (
-          <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+          <Skeleton className="h-8 w-8 rounded-full bg-muted" />
         ) : user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar>
-                  <AvatarImage src={user.photoURL || undefined} />
+                  <AvatarImage src={userData?.photoURL || undefined} />
                   <AvatarFallback>
                     <User className="h-5 w-5" />
                   </AvatarFallback>
@@ -39,7 +40,7 @@ export function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-slate-900/80 backdrop-blur-md border-white/20">
-              <DropdownMenuLabel>{user.displayName || user.email}</DropdownMenuLabel>
+              <DropdownMenuLabel>{userData?.displayName || user.email}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/profile">

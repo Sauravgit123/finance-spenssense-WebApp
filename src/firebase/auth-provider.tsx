@@ -2,53 +2,76 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { useFirebaseAuth } from './provider';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { useFirebaseAuth, useFirestore } from './provider';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { UserData } from '@/lib/types';
 
 interface AuthContextType {
   user: User | null;
+  userData: UserData | null;
   loading: boolean;
   logout: () => Promise<void>;
-  forceUpdate: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const auth = useFirebaseAuth();
+  const db = useFirestore();
   const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      setLoading(false);
       if (!firebaseUser && !['/login', '/signup'].includes(pathname)) {
         router.push('/login');
       }
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, [auth, router, pathname]);
+
+  useEffect(() => {
+    if (!user) {
+      setUserData(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const userDocRef = doc(db, 'users', user.uid);
+    const unsubscribeSnapshot = onSnapshot(userDocRef, 
+      (doc) => {
+        if (doc.exists()) {
+          setUserData(doc.data() as UserData);
+        } else {
+          setUserData(null);
+        }
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching user data:", error);
+        setUserData(null);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribeSnapshot();
+  }, [user, db]);
 
   const logout = useCallback(async () => {
     await signOut(auth);
+    setUserData(null);
     router.push('/login');
   }, [auth, router]);
   
-  const forceUpdate = useCallback(() => {
-    // This triggers a reload of the user's profile from Firebase.
-    // onAuthStateChanged will then fire with the updated user data,
-    // which updates our state and causes a re-render across the app.
-    auth.currentUser?.reload().catch((error) => {
-      console.error("Error reloading user:", error);
-    });
-  }, [auth]);
-
-  if (loading) {
+  if (loading && !['/login', '/signup'].includes(pathname)) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-slate-950">
         <div className="w-full max-w-sm space-y-4 p-4">
@@ -60,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout, forceUpdate }}>
+    <AuthContext.Provider value={{ user, userData, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );
