@@ -86,7 +86,7 @@ export function AddExpenseForm() {
   }
 
   return (
-    <Card className="bg-white/5 backdrop-blur-md border border-white/10 shadow-lg rounded-2xl">
+    <Card>
       <CardHeader>
         <CardTitle>Add an Expense</CardTitle>
       </CardHeader>

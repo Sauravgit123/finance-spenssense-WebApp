@@ -106,7 +106,7 @@ export function EditExpenseForm({ isOpen, setIsOpen, expense }: EditExpenseFormP
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[425px] bg-slate-900/80 backdrop-blur-md border-white/20">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Expense</DialogTitle>
           <DialogDescription>

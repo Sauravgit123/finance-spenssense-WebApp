@@ -46,17 +46,17 @@ const categoryDetails = {
   Needs: { 
     icon: <Home className="h-4 w-4" />, 
     badgeVariant: 'default' as const,
-    color: 'text-sky-400'
+    color: 'text-blue-500'
   },
   Wants: { 
     icon: <Sparkles className="h-4 w-4" />,
     badgeVariant: 'secondary' as const,
-    color: 'text-violet-400'
+    color: 'text-purple-500'
   },
   Savings: { 
     icon: <PiggyBank className="h-4 w-4" />,
     badgeVariant: 'outline' as const,
-    color: 'text-emerald-400'
+    color: 'text-green-500'
   },
 };
 
@@ -139,7 +139,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
 
   return (
     <>
-      <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-lg rounded-2xl">
+      <Card>
         <CardHeader>
           <CardTitle>Recent Expenses</CardTitle>
           <CardDescription>
@@ -149,7 +149,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow className="border-white/20">
+              <TableRow>
                 <TableHead>Expense</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
@@ -162,7 +162,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
                 <TableRow>
                   <TableCell
                     colSpan={5}
-                    className="h-24 text-center border-white/20"
+                    className="h-24 text-center"
                   >
                     No expenses added yet.
                   </TableCell>
@@ -171,13 +171,13 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
                 expenses.slice(0, 10).map((expense) => {
                   const details = categoryDetails[expense.category as keyof typeof categoryDetails] || categoryDetails.Wants;
                   return(
-                  <TableRow key={expense.id} className="border-white/20">
+                  <TableRow key={expense.id}>
                     <TableCell className="font-medium flex items-center">
                       <span className={details.color}>{details.icon}</span>
                       <span className="ml-2">{expense.name}</span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={details.badgeVariant}>
+                      <Badge variant={'outline'}>
                         {expense.category}
                       </Badge>
                     </TableCell>
@@ -201,6 +201,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDeleteRequest(expense)}
+                           className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
                           <span className="sr-only">Delete expense</span>
@@ -227,7 +228,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent className="bg-slate-900/80 backdrop-blur-md border-white/20">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>

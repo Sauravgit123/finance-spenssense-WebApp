@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/firebase/auth-provider';
 import { useFirestore } from '@/firebase/provider';
@@ -39,7 +38,6 @@ export function DashboardContainer() {
       return;
     }
     
-    // Show income modal if it's not set
     if (!loading && userData && (!userData.income || userData.income === 0)) {
         setIncomeModalOpen(true);
     }
@@ -82,18 +80,21 @@ export function DashboardContainer() {
   if (loading || expensesLoading) {
     return (
       <div className="container mx-auto p-4 md:p-8">
-        <Skeleton className="h-8 w-1/4 mb-6 bg-white/10" />
-        <div className="grid gap-6 md:grid-cols-3 mb-8">
-          <Skeleton className="h-40 rounded-2xl bg-white/10" />
-          <Skeleton className="h-40 rounded-2xl bg-white/10" />
-          <Skeleton className="h-40 rounded-2xl bg-white/10" />
+        <Skeleton className="h-8 w-1/4 mb-6" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          <Skeleton className="h-28 rounded-lg" />
+          <Skeleton className="h-28 rounded-lg" />
+          <Skeleton className="h-28 rounded-lg" />
+          <Skeleton className="h-28 rounded-lg" />
         </div>
         <div className="grid gap-8 md:grid-cols-5">
-          <div className="md:col-span-2">
-            <Skeleton className="h-64 rounded-2xl bg-white/10" />
+          <div className="md:col-span-3 space-y-8">
+            <Skeleton className="h-64 rounded-lg" />
+            <Skeleton className="h-96 rounded-lg" />
           </div>
-          <div className="md:col-span-3">
-            <Skeleton className="h-64 rounded-2xl bg-white/10" />
+          <div className="md:col-span-2 space-y-8">
+            <Skeleton className="h-96 rounded-lg" />
+            <Skeleton className="h-64 rounded-lg" />
           </div>
         </div>
       </div>
@@ -127,41 +128,41 @@ export function DashboardContainer() {
       
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <Card className="bg-white/10 backdrop-blur-md border-transparent shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Income</CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{formatCurrency(income)}</div>
+                  <div className="text-2xl font-bold">{formatCurrency(income)}</div>
                 </CardContent>
               </Card>
-              <Card className="bg-white/10 backdrop-blur-md border-transparent shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{formatCurrency(totalSpent)}</div>
+                  <div className="text-2xl font-bold">{formatCurrency(totalSpent)}</div>
                 </CardContent>
               </Card>
-              <Card className="bg-white/10 backdrop-blur-md border-transparent shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Available Balance</CardTitle>
+                  <CardTitle className="text-sm font-medium">Balance</CardTitle>
                   <WalletCards className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-3xl font-bold ${remainingIncome < 0 ? 'text-red-400' : ''}`}>{formatCurrency(remainingIncome)}</div>
+                  <div className={`text-2xl font-bold ${remainingIncome < 0 ? 'text-destructive' : ''}`}>{formatCurrency(remainingIncome)}</div>
                 </CardContent>
               </Card>
-              <Card className="bg-white/10 backdrop-blur-md border-transparent shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Savings Rate</CardTitle>
                   <BadgePercent className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{savingsRate.toFixed(0)}%</div>
+                  <div className="text-2xl font-bold">{savingsRate.toFixed(0)}%</div>
                 </CardContent>
               </Card>
           </div>
@@ -169,24 +170,24 @@ export function DashboardContainer() {
           <div className="grid gap-6 md:grid-cols-3">
             <BudgetCategoryCard
               title="Needs"
-              icon={<Home className="h-5 w-5 text-sky-400" />}
+              icon={<Home className="h-5 w-5 text-blue-500" />}
               allocated={needsTotal}
               spent={needsSpent}
-              colorClass="bg-chart-1"
+              colorClass="bg-blue-500"
             />
             <BudgetCategoryCard
               title="Wants"
-              icon={<Sparkles className="h-5 w-5 text-violet-400" />}
+              icon={<Sparkles className="h-5 w-5 text-purple-500" />}
               allocated={wantsTotal}
               spent={wantsSpent}
-              colorClass="bg-chart-2"
+              colorClass="bg-purple-500"
             />
             <BudgetCategoryCard
               title="Savings"
-              icon={<PiggyBank className="h-5 w-5 text-emerald-400" />}
+              icon={<PiggyBank className="h-5 w-5 text-green-500" />}
               allocated={savingsTotal}
               spent={savingsSpent}
-              colorClass="bg-chart-3"
+              colorClass="bg-green-500"
             />
           </div>
 

@@ -38,20 +38,20 @@ export function BudgetCategoryCard({
   const isOverBudget = rawProgressValue > 100;
 
   return (
-    <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-lg transition-all hover:scale-105 hover:shadow-xl rounded-2xl flex flex-col justify-between">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <div className="text-muted-foreground">{icon}</div>
       </CardHeader>
       <CardContent className="pt-2">
-        <div className={cn("text-3xl font-bold", isOverBudget && "text-red-400")}>{formatCurrency(spent)}</div>
+        <div className={cn("text-2xl font-bold", isOverBudget && "text-destructive")}>{formatCurrency(spent)}</div>
         <p className="text-xs text-muted-foreground">
           of {formatCurrency(allocated)} budget
         </p>
-        <Progress value={progress} indicatorClassName={cn(isOverBudget ? 'bg-red-500' : colorClass)} className="mt-4 h-2" />
+        <Progress value={progress} indicatorClassName={cn(isOverBudget ? 'bg-destructive' : colorClass)} className="mt-4 h-2" />
         <div className="flex justify-between text-xs font-medium text-muted-foreground mt-1">
            {isOverBudget ? (
-            <span className="font-bold text-red-400">{formatCurrency(spent - allocated)} Over Budget</span>
+            <span className="font-bold text-destructive">{formatCurrency(spent - allocated)} Over Budget</span>
            ) : (
             <>
               <span>{Math.round(rawProgressValue)}% Used</span>

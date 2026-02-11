@@ -49,7 +49,7 @@ export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) 
   }, [expenses]);
 
   return (
-    <Card className="bg-white/5 backdrop-blur-md border border-white/10 shadow-lg rounded-2xl">
+    <Card>
       <CardHeader>
         <CardTitle>Expense Breakdown</CardTitle>
         <CardDescription>A look at where your money is going.</CardDescription>
@@ -76,7 +76,7 @@ export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) 
                   <Cell
                     key={`cell-${entry.category}`}
                     fill={`var(--color-${entry.category})`}
-                    className="stroke-background/5"
+                    className="stroke-background"
                   />
                 ))}
               </Pie>
