@@ -1,15 +1,14 @@
 'use client';
 
-import { useState, useEffect, ChangeEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useAuth } from '@/firebase/auth-provider';
-import { useFirestore, useFirebaseStorage } from '@/firebase/provider';
-import { Loader2, User, Upload, X } from 'lucide-react';
+import { useFirestore } from '@/firebase/provider';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { UserData } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -36,13 +34,10 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const db = useFirestore();
-  const storage = useFirebaseStorage();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -74,12 +69,10 @@ export default function ProfilePage() {
             currency: data.currency || 'USD',
             savingsGoal: data.savingsGoal || 0,
           });
-          setAvatarPreview(data.photoURL || null);
         } else {
              form.reset({
                 displayName: user.displayName || '',
              });
-             setAvatarPreview(user.photoURL || null);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -96,70 +89,14 @@ export default function ProfilePage() {
     fetchUserData();
   }, [user, authLoading, db, form, toast]);
   
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      const previewUrl = URL.createObjectURL(file);
-      setAvatarPreview(previewUrl);
-    }
-  };
-
-  const handleRemovePicture = async () => {
-    if (!user) return;
-    
-    const oldPhotoURL = user.photoURL;
-    if (!oldPhotoURL && !avatarPreview) return; // Nothing to remove
-
-    setIsUpdating(true);
-
-    try {
-        await updateProfile(user, { photoURL: "" });
-        const userDocRef = doc(db, 'users', user.uid);
-        await updateDoc(userDocRef, { photoURL: "" });
-
-        if (oldPhotoURL && oldPhotoURL.includes('firebasestorage.googleapis.com')) {
-            try {
-                const oldStorageRef = ref(storage, oldPhotoURL);
-                await deleteObject(oldStorageRef);
-            } catch (storageError: any) {
-                if (storageError.code !== 'storage/object-not-found') {
-                    console.warn("Could not delete old avatar from storage:", storageError);
-                }
-            }
-        }
-        
-        setAvatarFile(null);
-        setAvatarPreview(null);
-        toast({
-            title: 'Picture Removed',
-            description: 'Your profile picture has been removed.',
-        });
-    } catch(error) {
-        console.error("Error removing picture:", error);
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Could not remove your profile picture.',
-        });
-    } finally {
-        setIsUpdating(false);
-    }
-  };
-
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) return;
     setIsUpdating(true);
 
-    let newPhotoURL = user.photoURL;
+    // Force photoURL to be empty to permanently delete it.
+    const newPhotoURL = "";
 
     try {
-        if (avatarFile) {
-            const storageRef = ref(storage, `profile-pictures/${user.uid}`);
-            await uploadBytes(storageRef, avatarFile);
-            newPhotoURL = await getDownloadURL(storageRef);
-        }
-
         const userDocRef = doc(db, 'users', user.uid);
         
         const updatedData: Partial<UserData> = {
@@ -167,20 +104,19 @@ export default function ProfilePage() {
             bio: data.bio,
             currency: data.currency,
             savingsGoal: data.savingsGoal ?? 0,
-            photoURL: newPhotoURL,
+            photoURL: newPhotoURL, // Always empty
         };
         
+        // Update both Auth and Firestore to ensure it's gone everywhere.
         await updateProfile(user, {
             displayName: data.displayName,
-            photoURL: newPhotoURL,
+            photoURL: newPhotoURL, // Always empty
         });
         await updateDoc(userDocRef, updatedData);
 
-        setAvatarFile(null);
-
         toast({
             title: 'Profile Updated',
-            description: 'Your profile has been successfully updated.',
+            description: 'Your profile has been successfully updated and the picture has been removed.',
         });
 
     } catch (error) {
@@ -229,38 +165,13 @@ export default function ProfilePage() {
       <Card className="w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-lg rounded-2xl">
         <CardHeader>
           <CardTitle>User Profile</CardTitle>
-          <CardDescription>Manage your profile and settings.</CardDescription>
+          <CardDescription>Manage your profile and settings. The profile picture feature has been removed.</CardDescription>
         </CardHeader>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="p-6 md:p-8">
             <div className="w-full space-y-6">
               
-              <div className="space-y-4">
-                  <Label className="text-slate-300">Profile Picture</Label>
-                  <div className="flex items-center gap-6">
-                    <Avatar className="h-24 w-24 border-2 border-dashed border-white/20">
-                      <AvatarImage src={avatarPreview || undefined} alt="User Avatar" />
-                      <AvatarFallback className="bg-transparent">
-                        <User className="h-10 w-10 text-slate-400" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col gap-2">
-                        <Button asChild variant="outline" className="relative">
-                            <label htmlFor="avatar-upload" className="cursor-pointer">
-                                <Upload className="mr-2 h-4 w-4" />
-                                Upload Picture
-                                <Input id="avatar-upload" type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileChange} />
-                            </label>
-                        </Button>
-                        {(avatarPreview || user?.photoURL) && (
-                            <Button variant="destructive" type="button" onClick={handleRemovePicture} disabled={isUpdating}>
-                                <X className="mr-2 h-4 w-4" />
-                                Remove
-                            </Button>
-                        )}
-                    </div>
-                  </div>
-                </div>
+              {/* Profile picture section is COMPLETELY removed */}
 
               <div className="space-y-2">
                 <Label htmlFor="displayName" className="text-slate-300">Display Name</Label>
