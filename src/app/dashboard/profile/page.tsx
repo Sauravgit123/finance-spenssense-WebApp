@@ -58,6 +58,7 @@ function centerAspectCrop(
 }
 
 
+// All fields are optional during an update.
 const profileSchema = z.object({
   displayName: z.string().optional(),
   bio: z.string().optional(),
@@ -93,28 +94,20 @@ export default function ProfilePage() {
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      displayName: '',
-      bio: '',
-      currency: 'USD',
-      savingsGoal: 0,
-    },
   });
 
   useEffect(() => {
-    if (userData) {
+    // This effect runs when auth data is loaded or refreshed.
+    // It populates the form with the latest data from the context.
+    if (user || userData) {
       form.reset({
-        displayName: userData.displayName || '',
-        bio: userData.bio || '',
-        currency: userData.currency || 'USD',
-        savingsGoal: userData.savingsGoal || 0,
+        displayName: userData?.displayName || user?.displayName || '',
+        bio: userData?.bio || '',
+        currency: userData?.currency || 'USD',
+        savingsGoal: userData?.savingsGoal || 0,
       });
-      setImagePreview(userData.photoURL || null);
-    } else if (user) {
-        form.reset({
-            displayName: user.displayName || '',
-        })
-        setImagePreview(user.photoURL || null);
+      // Set the image preview from the most reliable source
+      setImagePreview(userData?.photoURL || user?.photoURL || null);
     }
   }, [userData, user, form]);
 
@@ -205,7 +198,7 @@ export default function ProfilePage() {
     setIsUpdating(true);
 
     try {
-      let newPhotoURL = userData?.photoURL || user.photoURL || null;
+      let newPhotoURL = user.photoURL;
 
       // Step 1: Handle new image upload
       if (imageFile) {
@@ -214,8 +207,8 @@ export default function ProfilePage() {
         const uploadResult = await uploadBytes(storageRef, imageFile);
         newPhotoURL = await getDownloadURL(uploadResult.ref);
       } 
-      // Step 2: Handle image removal
-      else if (imagePreview === null && (userData?.photoURL || user.photoURL)) {
+      // Step 2: Handle image removal if the user cleared the preview
+      else if (imagePreview === null && user.photoURL) {
         const filePath = `profile-pictures/${user.uid}/profile.jpg`;
         const storageRef = ref(storage, filePath);
         try {
@@ -228,7 +221,7 @@ export default function ProfilePage() {
         newPhotoURL = null;
       }
       
-      // Step 3: Prepare data for Auth and Firestore
+      // Step 3: Prepare update payloads
       const authUpdates = {
         displayName: data.displayName,
         photoURL: newPhotoURL,
@@ -242,24 +235,18 @@ export default function ProfilePage() {
         photoURL: newPhotoURL,
       };
 
-      // Step 4: Update Firebase Auth Profile & Firestore Document
-      await updateProfile(user, authUpdates);
+      // Step 4: Perform updates
       const userDocRef = doc(db, 'users', user.uid);
       await setDoc(userDocRef, firestoreData, { merge: true });
+      await updateProfile(user, authUpdates);
 
-      // Step 5: Manually trigger a refresh of the user data context
+      // Step 5: CRUCIAL - Force refresh all auth state across the app
       await refreshUserData();
 
       toast({
         title: 'Profile Updated',
         description: 'Your profile has been successfully updated.',
       });
-
-      // Clear the temporary file object
-      setImageFile(null); 
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
 
     } catch (error: any) {
       console.error('Error updating profile:', error);
@@ -269,7 +256,12 @@ export default function ProfilePage() {
         description: error.message || 'There was an error updating your profile.',
       });
     } finally {
+      // Step 6: CRUCIAL - Ensure loading state is always turned off
       setIsUpdating(false);
+      setImageFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
