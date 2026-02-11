@@ -31,7 +31,7 @@ export function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar>
-                  {/* The <AvatarImage> component is permanently removed to prevent any picture from showing. */}
+                  <AvatarImage src={user.photoURL || undefined} />
                   <AvatarFallback>
                     <User className="h-5 w-5" />
                   </AvatarFallback>
