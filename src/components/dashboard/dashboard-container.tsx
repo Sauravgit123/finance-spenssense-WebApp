@@ -72,7 +72,8 @@ export function DashboardContainer() {
     return { needsTotal, wantsTotal, savingsTotal, needsSpent, wantsSpent, savingsSpent, totalSpent };
   }, [userData, expenses]);
 
-  if (loading || expensesLoading) {
+  // Show skeleton loader while auth, user data, or expenses are loading to prevent flicker
+  if (loading || expensesLoading || !userData) {
     return (
       <div className="container mx-auto p-4 md:p-8 space-y-8">
         <div className="flex justify-between items-center">
@@ -98,7 +99,7 @@ export function DashboardContainer() {
     );
   }
 
-  const income = userData?.income || 0;
+  const income = userData.income || 0;
 
   if (income === 0) {
     return <SetIncomeCard />;
