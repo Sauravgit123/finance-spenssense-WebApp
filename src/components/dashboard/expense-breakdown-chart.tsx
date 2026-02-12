@@ -25,28 +25,35 @@ const chartConfig = {
   },
 } satisfies React.ComponentProps<typeof ChartContainer>["config"]
 
+const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+};
+
 // This shape is for the currently HOVERED segment.
 const renderActiveShape = (props: any) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent } = props;
 
   return (
     <g>
-      <text x={cx} y={cy - 15} textAnchor="middle" dominantBaseline="central" fill="hsl(var(--foreground))" className="text-3xl font-bold">
-        {`${(percent * 100).toFixed(0)}%`}
+      <text x={cx} y={cy - 15} textAnchor="middle" dominantBaseline="central" fill="hsl(var(--foreground))" className="text-2xl font-bold">
+        {formatCurrency(payload.total)}
       </text>
-      <text x={cx} y={cy + 15} textAnchor="middle" fill={fill} className="text-lg font-semibold">
+      <text x={cx} y={cy + 5} textAnchor="middle" fill="hsl(var(--muted-foreground))" className="text-sm">
+        {`${(percent * 100).toFixed(0)}% of total`}
+      </text>
+      <text x={cx} y={cy + 25} textAnchor="middle" fill={fill} className="text-lg font-semibold">
         {payload.category}
       </text>
-      <Sector
+       <Sector
         cx={cx}
         cy={cy}
         innerRadius={innerRadius}
-        outerRadius={outerRadius}
+        outerRadius={outerRadius + 2} // Make it pop out a bit
         startAngle={startAngle}
         endAngle={endAngle}
         fill={fill}
-        stroke={'hsl(var(--border))'}
-        strokeWidth={2}
+        stroke={'hsl(var(--card))'}
+        strokeWidth={3}
       />
     </g>
   );
@@ -71,8 +78,9 @@ export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) 
     }, {} as { [key: string]: number });
 
     return Object.entries(categoryTotals).map(([category, total]) => ({
-      category: category,
+      category: category as keyof typeof chartConfig,
       total: total,
+      fill: `var(--color-${category})`
     }));
   }, [expenses]);
   
@@ -107,11 +115,8 @@ export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) 
                 outerRadius={90}
                 onMouseEnter={onPieEnter}
               >
-                {chartData.map((entry) => (
-                  <Cell
-                    key={`cell-${entry.category}`}
-                    fill={`var(--color-${entry.category})`}
-                  />
+                 {chartData.map((entry) => (
+                  <Cell key={`cell-${entry.category}`} fill={entry.fill} />
                 ))}
               </Pie>
               <ChartLegend
