@@ -1,13 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { PieChart, Pie, Cell, Sector } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { type Expense } from '@/lib/types';
 import {
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
 } from "@/components/ui/chart";
 
 const chartConfig = {
@@ -23,40 +21,34 @@ const chartConfig = {
     label: "Savings",
     color: "hsl(var(--chart-3))",
   },
-} satisfies React.ComponentProps<typeof ChartContainer>["config"]
+} satisfies React.ComponentProps<typeof ChartContainer>["config"];
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 };
 
-// This shape is for the currently HOVERED segment.
-const renderActiveShape = (props: any) => {
-  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent } = props;
-
-  return (
-    <g>
-      <text x={cx} y={cy - 15} textAnchor="middle" dominantBaseline="central" fill="hsl(var(--foreground))" className="text-2xl font-bold">
-        {formatCurrency(payload.total)}
-      </text>
-      <text x={cx} y={cy + 5} textAnchor="middle" fill="hsl(var(--muted-foreground))" className="text-sm">
-        {`${(percent * 100).toFixed(0)}% of total`}
-      </text>
-      <text x={cx} y={cy + 25} textAnchor="middle" fill={fill} className="text-lg font-semibold">
-        {payload.category}
-      </text>
-       <Sector
-        cx={cx}
-        cy={cy}
-        innerRadius={innerRadius}
-        outerRadius={outerRadius + 2} // Make it pop out a bit
-        startAngle={startAngle}
-        endAngle={endAngle}
-        fill={fill}
-        stroke={'hsl(var(--card))'}
-        strokeWidth={3}
-      />
-    </g>
-  );
+// A simple, professional tooltip to show details on hover.
+const ProfessionalTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    return (
+      <div className="rounded-lg border bg-background/95 p-3 shadow-lg backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+           <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: data.payload.fill }}/>
+           <p className="font-bold text-foreground">
+            {data.name}
+          </p>
+        </div>
+        <p className="mt-2 text-sm font-semibold text-foreground">
+          {formatCurrency(data.value)}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          ({(data.percent * 100).toFixed(0)}% of total spending)
+        </p>
+      </div>
+    );
+  }
+  return null;
 };
 
 
@@ -65,7 +57,7 @@ interface ExpenseBreakdownChartProps {
 }
 
 export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) {
-  const [activeIndex, setActiveIndex] = React.useState(0);
+  const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
 
   const chartData = React.useMemo(() => {
     if (!expenses || expenses.length === 0) {
@@ -80,7 +72,7 @@ export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) 
     return Object.entries(categoryTotals).map(([category, total]) => ({
       category: category as keyof typeof chartConfig,
       total: total,
-      fill: `var(--color-${category})`
+      fill: chartConfig[category as keyof typeof chartConfig].color,
     }));
   }, [expenses]);
   
@@ -90,12 +82,19 @@ export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) 
     },
     [setActiveIndex]
   );
+  
+  const onPieLeave = React.useCallback(
+    () => {
+      setActiveIndex(null);
+    },
+    [setActiveIndex]
+  );
 
   return (
     <Card className="glassmorphism">
       <CardHeader>
         <CardTitle>Expense Breakdown</CardTitle>
-        <CardDescription>Hover over a segment for details.</CardDescription>
+        <CardDescription>A simple and professional view of your spending.</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-4">
         {chartData.length > 0 ? (
@@ -104,23 +103,53 @@ export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) 
             className="mx-auto aspect-square max-h-[300px]"
           >
             <PieChart>
+              <Tooltip
+                cursor={{ fill: 'transparent' }}
+                content={<ProfessionalTooltip />}
+              />
               <Pie
-                activeIndex={activeIndex}
-                activeShape={renderActiveShape}
-                inactiveShape={(props) => <Sector {...props} opacity={0.4} />}
                 data={chartData}
                 dataKey="total"
                 nameKey="category"
                 innerRadius={70}
                 outerRadius={90}
                 onMouseEnter={onPieEnter}
+                onMouseLeave={onPieLeave}
               >
-                 {chartData.map((entry) => (
-                  <Cell key={`cell-${entry.category}`} fill={entry.fill} />
+                 {chartData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.fill} 
+                    opacity={activeIndex === null || activeIndex === index ? 1 : 0.4}
+                    stroke={activeIndex === index ? entry.fill : 'hsl(var(--card))'}
+                    strokeWidth={activeIndex === index ? 2 : 1}
+                  />
                 ))}
               </Pie>
-              <ChartLegend
-                content={<ChartLegendContent nameKey="category" />}
+              <Legend
+                content={({ payload }) => (
+                  <div className="flex items-center justify-center gap-4 pt-4 text-sm">
+                    {payload?.map((entry, index) => (
+                      <div
+                        key={`item-${index}`}
+                        onMouseEnter={() => onPieEnter(entry, index)}
+                        onMouseLeave={onPieLeave}
+                        className="flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: entry.color }}
+                        />
+                        <span
+                          className="text-muted-foreground transition-opacity"
+                          style={{ opacity: activeIndex === null || activeIndex === index ? 1 : 0.5 }}
+                        >
+                          {entry.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               />
             </PieChart>
           </ChartContainer>
