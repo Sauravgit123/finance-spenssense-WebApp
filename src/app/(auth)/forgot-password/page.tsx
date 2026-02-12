@@ -3,10 +3,10 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import { useFirebaseAuth } from '@/firebase/provider';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -20,53 +20,71 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useState } from 'react';
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Invalid email address.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
 });
 
-export default function LoginPage() {
-  const router = useRouter();
+export default function ForgotPasswordPage() {
   const auth = useFirebaseAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSent, setIsSent] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: '',
-      password: '',
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
-      toast({
-        title: 'Success!',
-        description: 'You have been logged in successfully.',
-      });
-      router.push('/dashboard');
+      await sendPasswordResetEmail(auth, values.email);
+      setIsSent(true); // Show the success message UI
     } catch (error: any) {
+      let description = 'An unexpected error occurred. Please try again.';
+      if (error.code === 'auth/invalid-email') {
+          description = 'The email address is not valid.';
+      }
+      
       toast({
         variant: 'destructive',
         title: 'Uh oh! Something went wrong.',
-        description: error.message,
+        description: description,
       });
     } finally {
       setIsLoading(false);
     }
   }
+  
+  if (isSent) {
+      return (
+        <Card className="w-full max-w-sm">
+            <CardHeader>
+                <CardTitle>Check your email</CardTitle>
+                <CardDescription>
+                We&apos;ve sent a password reset link to the email address you provided.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Link href="/login">
+                    <Button variant="outline" className="w-full">
+                        Back to Login
+                    </Button>
+                </Link>
+            </CardContent>
+        </Card>
+      )
+  }
 
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle>Login</CardTitle>
+        <CardTitle>Forgot Password</CardTitle>
         <CardDescription>
-          Enter your email below to login to your account.
+          No problem! Enter your email and we&apos;ll send you a reset link.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -85,36 +103,15 @@ export default function LoginPage() {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center">
-                    <FormLabel>Password</FormLabel>
-                    <Link
-                      href="/forgot-password"
-                      className="ml-auto inline-block text-sm underline"
-                    >
-                      Forgot your password?
-                    </Link>
-                  </div>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing In...' : 'Sign In'}
+              {isLoading ? 'Sending...' : 'Send Reset Link'}
             </Button>
           </form>
         </Form>
         <div className="mt-4 text-center text-sm">
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" className="underline">
-            Sign up
+          Remember your password?{' '}
+          <Link href="/login" className="underline">
+            Login
           </Link>
         </div>
       </CardContent>
