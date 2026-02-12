@@ -51,10 +51,23 @@ export default function LoginPage() {
       });
       router.push('/dashboard');
     } catch (error: any) {
+      let description = 'An unexpected error occurred. Please try again.';
+      switch (error.code) {
+        case 'auth/invalid-credential':
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+          description = "Invalid email or password. Please try again.";
+          break;
+        case 'auth/too-many-requests':
+          description = "Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or you can try again later.";
+          break;
+        default:
+          description = 'An unexpected error occurred. Please try again later.';
+      }
       toast({
         variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
-        description: error.message,
+        title: 'Login Failed',
+        description: description,
       });
     } finally {
       setIsLoading(false);
@@ -94,7 +107,7 @@ export default function LoginPage() {
                   <FormControl>
                     <Input type="password" placeholder="••••••••" {...field} />
                   </FormControl>
-                  <div className="flex justify-end">
+                  <div className="flex justify-end pt-1">
                     <Link
                       href="/forgot-password"
                       className="inline-block text-sm underline"

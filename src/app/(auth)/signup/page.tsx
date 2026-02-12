@@ -91,11 +91,24 @@ export default function SignupPage() {
         });
 
     } catch (error: any) {
-      // This catch block will handle errors from createUserWithEmailAndPassword or updateProfile
+      let description = "An unexpected error occurred. Please try again.";
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          description = "This email address is already in use by another account.";
+          break;
+        case 'auth/invalid-email':
+          description = "The email address is not valid. Please enter a valid email.";
+          break;
+        case 'auth/weak-password':
+          description = "The password is too weak. It must be at least 6 characters long.";
+          break;
+        default:
+          description = 'An unexpected error occurred. Please try again later.';
+      }
       toast({
         variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
-        description: error.message,
+        title: 'Sign-up Failed',
+        description: description,
       });
       setIsLoading(false); // Ensure loading is turned off on auth error
     }
