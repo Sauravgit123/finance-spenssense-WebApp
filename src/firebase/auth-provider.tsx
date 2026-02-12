@@ -20,6 +20,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const PUBLIC_PATHS = ['/login', '/signup', '/forgot-password'];
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const auth = useFirebaseAuth();
   const db = useFirestore();
@@ -61,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setUserData(null);
         setLoading(false);
-        if (!['/login', '/signup'].includes(pathname)) {
+        if (!PUBLIC_PATHS.includes(pathname)) {
           router.push('/login');
         }
       }
@@ -74,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(auth);
   }, [auth]);
   
-  if (loading && !['/login', '/signup'].includes(pathname)) {
+  if (loading && !PUBLIC_PATHS.includes(pathname)) {
     return (
         <div className="flex min-h-screen w-full flex-col">
             <div className="relative z-10 flex flex-1 flex-col">
