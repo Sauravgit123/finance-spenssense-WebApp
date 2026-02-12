@@ -25,18 +25,11 @@ const FinancialAdvisorOutputSchema = z.object({
   answer: z.string().describe('A concise and helpful answer to the user\'s question based on their spending.'),
 });
 
-export const financialAdvisorFlow = ai.defineFlow(
-  {
-    name: 'financialAdvisorFlow',
-    inputSchema: FinancialAdvisorInputSchema,
-    outputSchema: FinancialAdvisorOutputSchema,
-  },
-  async (input) => {
-    const prompt = ai.definePrompt({
-      name: 'financialAdvisorPrompt',
-      input: { schema: FinancialAdvisorInputSchema },
-      output: { schema: FinancialAdvisorOutputSchema },
-      prompt: `You are SpendSense, a friendly and insightful financial advisor. Your goal is to help the user manage their money better by answering their questions.
+const financialAdvisorPrompt = ai.definePrompt({
+  name: 'financialAdvisorPrompt',
+  input: { schema: FinancialAdvisorInputSchema },
+  output: { schema: FinancialAdvisorOutputSchema },
+  prompt: `You are SpendSense, a friendly and insightful financial advisor. Your goal is to help the user manage their money better by answering their questions.
 
 Analyze the following financial data:
 - User's monthly income: \${{{income}}}
@@ -49,9 +42,16 @@ Based on this data, answer the user's question clearly and concisely. Address th
 
 User's Question: "{{query}}"
 `,
-    });
+});
 
-    const { output } = await prompt(input);
+export const financialAdvisorFlow = ai.defineFlow(
+  {
+    name: 'financialAdvisorFlow',
+    inputSchema: FinancialAdvisorInputSchema,
+    outputSchema: FinancialAdvisorOutputSchema,
+  },
+  async (input) => {
+    const { output } = await financialAdvisorPrompt(input);
     return output!;
   }
 );
