@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { useFirebaseAuth, useFirestore } from '@/firebase/provider';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
@@ -32,7 +31,6 @@ const formSchema = z.object({
 });
 
 export default function SignupPage() {
-  const router = useRouter();
   const auth = useFirebaseAuth();
   const db = useFirestore();
   const { toast } = useToast();
@@ -69,7 +67,7 @@ export default function SignupPage() {
               title: 'Account created.',
               description: "We've created your account for you.",
             });
-            router.push('/dashboard');
+            // The AuthProvider will handle the redirect automatically.
         })
         .catch((serverError) => {
             const permissionError = new FirestorePermissionError({

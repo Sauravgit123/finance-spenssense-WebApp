@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useFirebaseAuth } from '@/firebase/provider';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
@@ -28,7 +27,6 @@ const formSchema = z.object({
 });
 
 export default function LoginPage() {
-  const router = useRouter();
   const auth = useFirebaseAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -47,9 +45,9 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
         title: 'Success!',
-        description: 'You have been logged in successfully.',
+        description: 'You will be redirected to your dashboard.',
       });
-      router.push('/dashboard');
+      // The AuthProvider will handle the redirect automatically.
     } catch (error: any) {
       let description = 'An unexpected error occurred. Please try again.';
       switch (error.code) {
