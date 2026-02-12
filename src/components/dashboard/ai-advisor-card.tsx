@@ -73,7 +73,7 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
       let displayMessage = genericError;
 
       if (e.message?.includes('AI assistant is not configured')) {
-        displayMessage = `The AI Assistant is not fully set up for this environment. This is expected during local development.\n\nTo make it work, it needs special API keys to connect to Firebase and Google AI. When you publish your app, you'll add these keys to your hosting provider's settings.`;
+        displayMessage = `The AI Assistant is not fully set up for this environment.\n\nThis is expected during local development because it needs special API keys to connect to Firebase and Google AI securely.\n\nWhen you publish your app, you'll add these keys to your hosting provider's settings, and the AI will start working automatically.`;
       } else if (e.message) {
         displayMessage = e.message;
       }
