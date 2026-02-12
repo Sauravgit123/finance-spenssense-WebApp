@@ -17,6 +17,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { AIAdvisorCard } from './ai-advisor-card';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SetIncomeCard } from './set-income-card';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -74,29 +75,36 @@ export function DashboardContainer() {
 
   if (loading || expensesLoading) {
     return (
-      <div className="container mx-auto p-4 md:p-8">
-        <Skeleton className="h-8 w-1/4 mb-6" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-          <Skeleton className="h-28 rounded-lg" />
-          <Skeleton className="h-28 rounded-lg" />
-          <Skeleton className="h-28 rounded-lg" />
-          <Skeleton className="h-28 rounded-lg" />
+      <div className="container mx-auto p-4 md:p-8 space-y-8">
+        <div className="flex justify-between items-center">
+            <div>
+                <Skeleton className="h-10 w-48" />
+                <Skeleton className="h-4 w-64 mt-2" />
+            </div>
         </div>
-        <div className="grid gap-8 md:grid-cols-5">
-          <div className="md:col-span-3 space-y-8">
-            <Skeleton className="h-64 rounded-lg" />
-            <Skeleton className="h-96 rounded-lg" />
-          </div>
-          <div className="md:col-span-2 space-y-8">
-            <Skeleton className="h-96 rounded-lg" />
-            <Skeleton className="h-64 rounded-lg" />
-          </div>
+        <Skeleton className="h-12 w-full" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Skeleton className="h-24 rounded-lg" />
+            <Skeleton className="h-24 rounded-lg" />
+            <Skeleton className="h-24 rounded-lg" />
+            <Skeleton className="h-24 rounded-lg" />
         </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Skeleton className="h-40 rounded-lg" />
+            <Skeleton className="h-40 rounded-lg" />
+            <Skeleton className="h-40 rounded-lg" />
+        </div>
+        <Skeleton className="h-80 rounded-lg" />
       </div>
     );
   }
 
   const income = userData?.income || 0;
+
+  if (income === 0) {
+    return <SetIncomeCard />;
+  }
+
   const remainingIncome = income - totalSpent;
   const savingsRate = income > 0 ? (savingsSpent / income) * 100 : 0;
 

@@ -75,7 +75,6 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
       setMessages(prev => [...prev, aiMessage]);
 
     } catch (e: any) {
-      console.error("AI Advisor Error:", e);
       const errorMessage = 'Sorry, I couldn\'t generate a response right now. Please try again later.';
       
       setMessages(prev => prev.filter(msg => msg !== userMessage));

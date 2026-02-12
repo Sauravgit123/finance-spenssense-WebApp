@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { UserData } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { SpendSenseLogo } from '@/components/logo';
 
 interface AuthContextType {
   user: User | null;
@@ -32,7 +33,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        // Set up a real-time listener for Firestore user data
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         const unsubscribeSnapshot = onSnapshot(userDocRef, 
           (doc) => {
@@ -69,17 +69,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   if (loading && !['/login', '/signup'].includes(pathname)) {
     return (
-      <div className="flex min-h-screen w-full flex-col bg-muted/40">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-          <Skeleton className="h-8 w-32" />
-          <div className="ml-auto">
-            <Skeleton className="h-8 w-8 rounded-full" />
-          </div>
-        </header>
-        <main className="flex-1 p-4 md:p-8">
-           <Skeleton className="h-96 w-full" />
-        </main>
-      </div>
+        <div className="flex min-h-screen w-full flex-col">
+            <div className="relative z-10 flex flex-1 flex-col">
+                <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-white/10 bg-white/5 px-6 backdrop-blur-xl">
+                    <SpendSenseLogo />
+                </header>
+                <main className="flex-1">
+                    <div className="container mx-auto p-4 md:p-8 space-y-8">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <Skeleton className="h-10 w-48" />
+                                <Skeleton className="h-4 w-64 mt-2" />
+                            </div>
+                        </div>
+                        <Skeleton className="h-12 w-full" />
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <Skeleton className="h-24 rounded-lg" />
+                            <Skeleton className="h-24 rounded-lg" />
+                            <Skeleton className="h-24 rounded-lg" />
+                            <Skeleton className="h-24 rounded-lg" />
+                        </div>
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            <Skeleton className="h-40 rounded-lg" />
+                            <Skeleton className="h-40 rounded-lg" />
+                            <Skeleton className="h-40 rounded-lg" />
+                        </div>
+                        <Skeleton className="h-80 rounded-lg" />
+                    </div>
+                </main>
+            </div>
+        </div>
     );
   }
 
