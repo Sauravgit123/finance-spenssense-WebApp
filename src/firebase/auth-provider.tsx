@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { useFirebaseAuth, useFirestore } from './provider';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,26 +30,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
         const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const unsubscribeSnapshot = onSnapshot(userDocRef, 
-          (doc) => {
-            setUserData(doc.data() as UserData || null);
-            setLoading(false);
-          },
-          (error) => {
-            const permissionError = new FirestorePermissionError({
-              path: userDocRef.path,
-              operation: 'get',
-            });
-            errorEmitter.emit('permission-error', permissionError);
+        try {
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            setUserData(userDoc.data() as UserData);
+          } else {
+            console.warn("User document not found for UID:", firebaseUser.uid);
             setUserData(null);
-            setLoading(false);
+             // If user exists in Auth but not Firestore, something is wrong.
+             // This can happen if doc creation fails on signup.
+             // For a better UX, sign them out to force a clean state.
+            await signOut(auth);
           }
-        );
-        return () => unsubscribeSnapshot();
+        } catch (error) {
+          const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'get',
+          });
+          errorEmitter.emit('permission-error', permissionError);
+          setUserData(null);
+          await signOut(auth); // Sign out on permission error
+        } finally {
+          setLoading(false);
+        }
       } else {
         setUser(null);
         setUserData(null);
