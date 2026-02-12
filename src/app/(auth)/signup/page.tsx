@@ -61,10 +61,6 @@ export default function SignupPage() {
       const initialUserData = {
         displayName: values.displayName,
         income: 0,
-        photoURL: '',
-        bio: '',
-        currency: 'USD',
-        savingsGoal: 0,
       };
 
       setDoc(userDocRef, initialUserData)

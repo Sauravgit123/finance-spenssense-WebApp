@@ -9,33 +9,9 @@
           "type": "string",
           "description": "The user's display name."
         },
-        "photoURL": {
-          "type": "string",
-          "format": "uri",
-          "description": "The URL of the user's profile picture."
-        },
         "income": {
           "type": "number",
           "description": "The user's monthly income."
-        },
-        "bio": {
-          "type": "string",
-          "description": "A short user biography."
-        },
-        "currency": {
-          "type": "string",
-          "description": "The user's preferred currency.",
-          "enum": [
-            "USD",
-            "EUR",
-            "GBP",
-            "JPY",
-            "INR"
-          ]
-        },
-        "savingsGoal": {
-          "type": "number",
-          "description": "The user's monthly savings goal."
         }
       },
       "required": [

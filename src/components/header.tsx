@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { SpendSenseLogo } from './logo';
-import { UserNav } from './user-nav';
 
 export function Header() {
   return (
@@ -10,7 +9,6 @@ export function Header() {
       <Link href="/dashboard" className="flex items-center gap-2 mr-auto">
         <SpendSenseLogo />
       </Link>
-      <UserNav />
     </header>
   );
 }

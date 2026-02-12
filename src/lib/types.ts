@@ -16,8 +16,4 @@ export interface Expense {
 export interface UserData {
   income: number;
   displayName?: string;
-  photoURL?: string;
-  bio?: string;
-  currency?: string;
-  savingsGoal?: number;
 }
