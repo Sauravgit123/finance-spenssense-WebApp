@@ -6,8 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { type Expense } from '@/lib/types';
 import {
   ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
@@ -27,31 +25,56 @@ const chartConfig = {
   },
 } satisfies React.ComponentProps<typeof ChartContainer>["config"]
 
+// This shape is for the currently HOVERED segment. It's more prominent.
 const renderActiveShape = (props: any) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent } = props;
 
   return (
-    <g style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}>
+    <g style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.3))' }}>
+      {/* The main colored sector */}
       <Sector
         cx={cx}
         cy={cy}
         innerRadius={innerRadius}
-        outerRadius={outerRadius + 8} // Make the hovered segment "pop out"
+        outerRadius={outerRadius + 4} // A very subtle pop
         startAngle={startAngle}
         endAngle={endAngle}
         fill={fill}
         cornerRadius={8}
         className="stroke-background"
-        strokeWidth={3}
+        strokeWidth={2}
       />
-       <text x={cx} y={cy - 15} textAnchor="middle" dominantBaseline="central" fill="hsl(var(--foreground))" className="text-xl font-bold">
+      {/* Text in the middle */}
+       <text x={cx} y={cy - 12} textAnchor="middle" dominantBaseline="central" fill="hsl(var(--foreground))" className="text-2xl font-bold">
         {`${(percent * 100).toFixed(0)}%`}
       </text>
-      <text x={cx} y={cy + 15} textAnchor="middle" dominantBaseline="central" fill={fill} className="text-lg font-semibold">
+      <text x={cx} y={cy + 18} textAnchor="middle" dominantBaseline="central" fill={fill} className="text-lg font-semibold tracking-wider uppercase">
         {payload.category}
       </text>
     </g>
   );
+};
+
+// This shape is for the segments NOT being hovered. They are dimmed.
+const renderInactiveShape = (props: any) => {
+    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+    return (
+        <g>
+            <Sector
+                cx={cx}
+                cy={cy}
+                innerRadius={innerRadius}
+                outerRadius={outerRadius}
+                startAngle={startAngle}
+                endAngle={endAngle}
+                fill={fill}
+                fillOpacity={0.4}
+                cornerRadius={8}
+                className="stroke-background/50"
+                strokeWidth={1}
+            />
+        </g>
+    );
 };
 
 interface ExpenseBreakdownChartProps {
@@ -83,6 +106,11 @@ export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) 
     },
     [setActiveIndex]
   );
+  
+  // Reset to default active slice when mouse leaves the chart
+  const onMouseLeave = React.useCallback(() => {
+    setActiveIndex(0);
+  }, [setActiveIndex]);
 
   return (
     <Card className="glassmorphism">
@@ -95,11 +123,13 @@ export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) 
           <ChartContainer
             config={chartConfig}
             className="mx-auto aspect-square max-h-[300px]"
+            onMouseLeave={onMouseLeave}
           >
             <PieChart>
               <Pie
                 activeIndex={activeIndex}
                 activeShape={renderActiveShape}
+                inactiveShape={renderInactiveShape}
                 data={chartData}
                 dataKey="total"
                 nameKey="category"
@@ -113,8 +143,6 @@ export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) 
                   <Cell
                     key={`cell-${entry.category}`}
                     fill={`var(--color-${entry.category})`}
-                    className="stroke-background"
-                    strokeWidth={3}
                   />
                 ))}
               </Pie>
