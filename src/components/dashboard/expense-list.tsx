@@ -131,7 +131,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
 
   return (
     <>
-      <Card>
+      <Card className="glassmorphism">
         <CardHeader>
           <CardTitle>Recent Expenses</CardTitle>
           <CardDescription>
@@ -163,7 +163,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
                 expenses.slice(0, 10).map((expense) => {
                   const details = categoryDetails[expense.category as keyof typeof categoryDetails] || categoryDetails.Wants;
                   return(
-                  <TableRow key={expense.id}>
+                  <TableRow key={expense.id} className="border-slate-800">
                     <TableCell className="font-medium flex items-center">
                       <span className={details.color}>{details.icon}</span>
                       <span className="ml-2">{expense.name}</span>

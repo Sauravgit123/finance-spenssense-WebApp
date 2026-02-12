@@ -68,3 +68,9 @@
     }
   }
 }
+
+@layer utilities {
+  .glassmorphism {
+    @apply bg-black/40 backdrop-blur-lg border border-slate-700;
+  }
+}

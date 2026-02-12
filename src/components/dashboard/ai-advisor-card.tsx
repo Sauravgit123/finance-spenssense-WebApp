@@ -87,7 +87,7 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
   };
 
   return (
-    <Card className="flex flex-col h-[550px]">
+    <Card className="glassmorphism flex flex-col h-[550px]">
       <CardHeader>
         <div className="flex items-center gap-3">
           <Sparkles className="h-6 w-6 text-primary" />
@@ -102,7 +102,7 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
                 <div key={index} className={`flex items-start gap-3 ${message.sender === 'user' ? 'justify-end' : ''}`}>
                     {message.sender === 'ai' && (
                         <Avatar className="w-8 h-8 border">
-                            <AvatarFallback>
+                            <AvatarFallback className="bg-transparent">
                                 <Sparkles className="w-5 h-5 text-primary" />
                             </AvatarFallback>
                         </Avatar>
@@ -123,7 +123,7 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
             {isLoading && (
                 <div className="flex items-start gap-3">
                     <Avatar className="w-8 h-8 border">
-                        <AvatarFallback>
+                        <AvatarFallback className="bg-transparent">
                             <Sparkles className="w-5 h-5 text-primary" />
                         </AvatarFallback>
                     </Avatar>
@@ -139,7 +139,7 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
              {error && (
                 <div className="flex items-start gap-3">
                     <Avatar className="w-8 h-8 border border-destructive">
-                         <AvatarFallback>
+                         <AvatarFallback className="bg-transparent">
                             <Sparkles className="w-5 h-5 text-destructive" />
                         </AvatarFallback>
                     </Avatar>
@@ -150,7 +150,7 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
             )}
             </div>
         </ScrollArea>
-        <form onSubmit={handleSendMessage} className="flex items-center gap-2 pt-4 border-t">
+        <form onSubmit={handleSendMessage} className="flex items-center gap-2 pt-4 border-t border-slate-700">
           <Input
             value={input}
             onChange={(e) => {

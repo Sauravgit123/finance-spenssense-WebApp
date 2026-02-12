@@ -49,7 +49,7 @@ export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) 
   }, [expenses]);
 
   return (
-    <Card>
+    <Card className="glassmorphism">
       <CardHeader>
         <CardTitle>Expense Breakdown</CardTitle>
         <CardDescription>A look at where your money is going.</CardDescription>

@@ -86,7 +86,7 @@ export function AddExpenseForm() {
   }
 
   return (
-    <Card>
+    <Card className="glassmorphism">
       <CardHeader>
         <CardTitle>Add an Expense</CardTitle>
       </CardHeader>

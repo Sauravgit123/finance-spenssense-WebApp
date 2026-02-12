@@ -110,7 +110,7 @@ export function DashboardContainer() {
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
+              <Card className="glassmorphism">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Income</CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -119,7 +119,7 @@ export function DashboardContainer() {
                   <div className="text-2xl font-bold">{formatCurrency(income)}</div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="glassmorphism">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
@@ -128,7 +128,7 @@ export function DashboardContainer() {
                   <div className="text-2xl font-bold">{formatCurrency(totalSpent)}</div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="glassmorphism">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Balance</CardTitle>
                   <WalletCards className="h-4 w-4 text-muted-foreground" />
@@ -137,7 +137,7 @@ export function DashboardContainer() {
                   <div className={`text-2xl font-bold ${remainingIncome < 0 ? 'text-destructive' : ''}`}>{formatCurrency(remainingIncome)}</div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="glassmorphism">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Savings Rate</CardTitle>
                   <BadgePercent className="h-4 w-4 text-muted-foreground" />
