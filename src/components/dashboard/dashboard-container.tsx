@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { BudgetCategoryCard } from './budget-category-card';
 import { AddExpenseForm } from './add-expense-form';
 import { ExpenseList } from './expense-list';
-import { Home, Sparkles, PiggyBank, DollarSign, CreditCard, WalletCards, BadgePercent, LayoutGrid, List, Bot, LogOut } from 'lucide-react';
+import { Home, Sparkles, PiggyBank, DollarSign, CreditCard, WalletCards, BadgePercent, LayoutGrid, List, Bot } from 'lucide-react';
 import { ExpenseBreakdownChart } from './expense-breakdown-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -17,7 +17,6 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { AIAdvisorCard } from './ai-advisor-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SetIncomeCard } from './set-income-card';
-import { Button } from '../ui/button';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -27,7 +26,7 @@ const formatCurrency = (amount: number) => {
 };
 
 export function DashboardContainer() {
-  const { user, userData, loading, logout } = useAuth();
+  const { user, userData, loading } = useAuth();
   const db = useFirestore();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expensesLoading, setExpensesLoading] = useState(true);
@@ -215,12 +214,6 @@ export function DashboardContainer() {
             <AIAdvisorCard expenses={expenses} income={income} />
         </TabsContent>
       </Tabs>
-      <div className="flex justify-center pt-8">
-          <Button onClick={logout} variant="outline">
-              <LogOut className="mr-2 h-4 w-4" />
-              Log Out
-          </Button>
-      </div>
     </div>
   );
 }
