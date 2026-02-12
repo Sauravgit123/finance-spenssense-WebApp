@@ -1,3 +1,5 @@
+'use server';
+
 import { NextResponse } from 'next/server';
 import { financialAdvisorFlow } from '@/ai/flows/financial-advisor-flow';
 import { z } from 'zod';
@@ -63,6 +65,7 @@ export async function POST(request: Request) {
     return NextResponse.json(result);
 
   } catch (error: any) {
+    console.error("Error in financial-advisor API:", error);
     if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
         return NextResponse.json({ error: 'Unauthorized. Invalid token.' }, { status: 401 });
     }
