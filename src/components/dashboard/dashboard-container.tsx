@@ -9,12 +9,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { BudgetCategoryCard } from './budget-category-card';
 import { AddExpenseForm } from './add-expense-form';
 import { ExpenseList } from './expense-list';
-import { Home, Sparkles, PiggyBank, DollarSign, CreditCard, WalletCards, BadgePercent } from 'lucide-react';
+import { Home, Sparkles, PiggyBank, DollarSign, CreditCard, WalletCards, BadgePercent, LogOut } from 'lucide-react';
 import { ExpenseBreakdownChart } from './expense-breakdown-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { AIAdvisorCard } from './ai-advisor-card';
+import { Button } from '../ui/button';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -24,7 +25,7 @@ const formatCurrency = (amount: number) => {
 };
 
 export function DashboardContainer() {
-  const { user, userData, loading } = useAuth();
+  const { user, userData, loading, logout } = useAuth();
   const db = useFirestore();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expensesLoading, setExpensesLoading] = useState(true);
@@ -102,7 +103,7 @@ export function DashboardContainer() {
     <div className="container mx-auto p-4 md:p-8 space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-4xl font-bold tracking-tighter">Dashboard</h1>
           <p className="text-muted-foreground">Welcome back, {userData?.displayName || user?.email}!</p>
         </div>
       </div>
@@ -151,24 +152,24 @@ export function DashboardContainer() {
           <div className="grid gap-6 md:grid-cols-3">
             <BudgetCategoryCard
               title="Needs"
-              icon={<Home className="h-5 w-5 text-blue-500" />}
+              icon={<Home className="h-5 w-5 text-chart-1" />}
               allocated={needsTotal}
               spent={needsSpent}
-              colorClass="bg-blue-500"
+              colorClass="bg-chart-1"
             />
             <BudgetCategoryCard
               title="Wants"
-              icon={<Sparkles className="h-5 w-5 text-purple-500" />}
+              icon={<Sparkles className="h-5 w-5 text-chart-2" />}
               allocated={wantsTotal}
               spent={wantsSpent}
-              colorClass="bg-purple-500"
+              colorClass="bg-chart-2"
             />
             <BudgetCategoryCard
               title="Savings"
-              icon={<PiggyBank className="h-5 w-5 text-green-500" />}
+              icon={<PiggyBank className="h-5 w-5 text-chart-3" />}
               allocated={savingsTotal}
               spent={savingsSpent}
-              colorClass="bg-green-500"
+              colorClass="bg-chart-3"
             />
           </div>
 
@@ -180,6 +181,12 @@ export function DashboardContainer() {
             <AddExpenseForm />
             <ExpenseBreakdownChart expenses={expenses} />
         </div>
+      </div>
+      <div className="flex justify-center pt-4">
+        <Button variant="outline" onClick={logout} className="glassmorphism">
+            <LogOut className="mr-2 h-4 w-4" />
+            Log Out
+        </Button>
       </div>
     </div>
   );
