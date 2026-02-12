@@ -11,6 +11,16 @@ const RequestSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  // Check if Firebase Admin is initialized
+  if (!admin.apps.length) {
+    const errorMessage = 'AI assistant is not configured. The server is missing Firebase Admin credentials. Please check your .env.local file.';
+    console.error(`FATAL: ${errorMessage}`);
+    return NextResponse.json(
+      { error: errorMessage },
+      { status: 500 }
+    );
+  }
+
   try {
     // 1. Authenticate the user and get their UID
     const authorization = request.headers.get('Authorization');
@@ -66,12 +76,23 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("Error in financial-advisor API:", error);
+
     if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
         return NextResponse.json({ error: 'Unauthorized. Invalid token.' }, { status: 401 });
     }
+    
+    // Check for common environment variable issues
+    if (error.message?.includes('API key not found')) {
+      const errorMessage = 'AI assistant is not configured. The server is missing the Gemini API key. Please check your .env.local file.';
+      console.error(`FATAL: ${errorMessage}`);
+      return NextResponse.json(
+        { error: errorMessage },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
-      { error: 'An error occurred while processing your request.' },
+      { error: 'An error occurred while processing your request. Please check the server logs for details.' },
       { status: 500 }
     );
   }
