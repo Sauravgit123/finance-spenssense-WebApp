@@ -9,13 +9,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { BudgetCategoryCard } from './budget-category-card';
 import { AddExpenseForm } from './add-expense-form';
 import { ExpenseList } from './expense-list';
-import { Home, Sparkles, PiggyBank, DollarSign, CreditCard, WalletCards, BadgePercent, LogOut, LayoutGrid, List, Bot } from 'lucide-react';
+import { Home, Sparkles, PiggyBank, DollarSign, CreditCard, WalletCards, BadgePercent, LayoutGrid, List, Bot } from 'lucide-react';
 import { ExpenseBreakdownChart } from './expense-breakdown-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { AIAdvisorCard } from './ai-advisor-card';
-import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SetIncomeCard } from './set-income-card';
 
@@ -215,13 +214,6 @@ export function DashboardContainer() {
             <AIAdvisorCard expenses={expenses} income={income} />
         </TabsContent>
       </Tabs>
-
-      <div className="flex justify-center pt-4">
-        <Button variant="outline" onClick={logout} className="glassmorphism">
-            <LogOut className="mr-2 h-4 w-4" />
-            Log Out
-        </Button>
-      </div>
     </div>
   );
 }
