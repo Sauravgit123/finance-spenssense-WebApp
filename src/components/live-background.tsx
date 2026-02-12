@@ -54,11 +54,6 @@ export function LiveBackground() {
     // Icons are generated only on the client-side to avoid hydration mismatches
     setIcons(generateIcons());
   }, []);
-  
-  if (icons.length === 0) {
-    // This part ensures the background is always rendered, even on SSR.
-    return <div className="fixed inset-0 -z-10 h-full w-full overflow-hidden bg-gradient-to-br from-slate-950 to-gray-900 pointer-events-none" />;
-  }
 
   return (
     <div className="fixed inset-0 -z-10 h-full w-full overflow-hidden bg-gradient-to-br from-slate-950 to-gray-900 pointer-events-none">
