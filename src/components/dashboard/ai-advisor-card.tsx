@@ -19,6 +19,7 @@ interface AIAdvisorCardProps {
 interface Message {
     sender: 'user' | 'ai';
     text: string;
+    isError?: boolean;
 }
 
 export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
@@ -28,7 +29,6 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +39,6 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
     const currentInput = input;
     setInput('');
     setIsLoading(true);
-    setError(null);
 
     try {
       const token = await user.getIdToken();
@@ -70,11 +69,17 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
       setMessages(prev => [...prev, aiMessage]);
 
     } catch (e: any) {
-      const errorMessage = 'Sorry, I couldn\'t generate a response right now. Please try again later.';
+      const genericError = 'Sorry, I couldn\'t generate a response right now. Please try again later.';
+      let displayMessage = genericError;
+
+      if (e.message?.includes('AI assistant is not configured')) {
+        displayMessage = `The AI Assistant is not fully set up for this environment. This is expected during local development.\n\nTo make it work, it needs special API keys to connect to Firebase and Google AI. When you publish your app, you'll add these keys to your hosting provider's settings.`;
+      } else if (e.message) {
+        displayMessage = e.message;
+      }
       
-      setMessages(prev => prev.filter(msg => msg !== userMessage));
-      setError(e.message || errorMessage);
-      setInput(currentInput); 
+      const aiErrorMessage: Message = { sender: 'ai', text: displayMessage, isError: true };
+      setMessages(prev => [...prev, aiErrorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -95,13 +100,13 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
             {messages.map((message, index) => (
                 <div key={index} className={`flex items-start gap-3 ${message.sender === 'user' ? 'justify-end' : ''}`}>
                     {message.sender === 'ai' && (
-                        <Avatar className="w-8 h-8 border">
+                        <Avatar className={`w-8 h-8 border ${message.isError ? 'border-destructive' : ''}`}>
                             <AvatarFallback className="bg-transparent">
-                                <Sparkles className="w-5 h-5 text-primary" />
+                                <Sparkles className={`w-5 h-5 ${message.isError ? 'text-destructive' : 'text-primary'}`} />
                             </AvatarFallback>
                         </Avatar>
                     )}
-                    <div className={`rounded-lg p-3 max-w-[80%] text-sm ${message.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                    <div className={`rounded-lg p-3 max-w-[80%] text-sm whitespace-pre-wrap ${message.sender === 'user' ? 'bg-primary text-primary-foreground' : (message.isError ? 'bg-destructive/10 text-destructive' : 'bg-muted')}`}>
                         <p>{message.text}</p>
                     </div>
                      {message.sender === 'user' && (
@@ -130,18 +135,6 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
                     </div>
                 </div>
             )}
-             {error && (
-                <div className="flex items-start gap-3">
-                    <Avatar className="w-8 h-8 border border-destructive">
-                         <AvatarFallback className="bg-transparent">
-                            <Sparkles className="w-5 h-5 text-destructive" />
-                        </AvatarFallback>
-                    </Avatar>
-                    <div className="rounded-lg p-3 max-w-[80%] text-sm bg-destructive/10 text-destructive">
-                        <p>{error}</p>
-                    </div>
-                </div>
-            )}
             </div>
         </ScrollArea>
         <form onSubmit={handleSendMessage} className="flex items-center gap-2 pt-4 border-t border-slate-700">
@@ -149,7 +142,6 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
             value={input}
             onChange={(e) => {
               setInput(e.target.value);
-              setError(null);
             }}
             placeholder="e.g., Where can I save money?"
             disabled={isLoading}
