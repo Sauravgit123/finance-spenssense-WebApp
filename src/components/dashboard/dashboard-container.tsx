@@ -9,13 +9,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { BudgetCategoryCard } from './budget-category-card';
 import { AddExpenseForm } from './add-expense-form';
 import { ExpenseList } from './expense-list';
-import { Home, Sparkles, PiggyBank, DollarSign, CreditCard, WalletCards, BadgePercent, LogOut } from 'lucide-react';
+import { Home, Sparkles, PiggyBank, DollarSign, CreditCard, WalletCards, BadgePercent, LogOut, LayoutGrid, List, Bot } from 'lucide-react';
 import { ExpenseBreakdownChart } from './expense-breakdown-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { AIAdvisorCard } from './ai-advisor-card';
 import { Button } from '../ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -108,8 +109,23 @@ export function DashboardContainer() {
         </div>
       </div>
       
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-8">
+       <Tabs defaultValue="overview" className="space-y-8">
+        <TabsList className="grid w-full grid-cols-3 glassmorphism p-2 h-auto">
+          <TabsTrigger value="overview" className="gap-2">
+            <LayoutGrid className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="expenses" className="gap-2">
+            <List className="h-4 w-4" />
+            Expenses
+          </TabsTrigger>
+          <TabsTrigger value="advisor" className="gap-2">
+            <Bot className="h-4 w-4" />
+            AI Advisor
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-8">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <Card className="glassmorphism">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -148,40 +164,50 @@ export function DashboardContainer() {
                 </CardContent>
               </Card>
           </div>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            <BudgetCategoryCard
-              title="Needs"
-              icon={<Home className="h-5 w-5 text-chart-1" />}
-              allocated={needsTotal}
-              spent={needsSpent}
-              colorClass="bg-chart-1"
-            />
-            <BudgetCategoryCard
-              title="Wants"
-              icon={<Sparkles className="h-5 w-5 text-chart-2" />}
-              allocated={wantsTotal}
-              spent={wantsSpent}
-              colorClass="bg-chart-2"
-            />
-            <BudgetCategoryCard
-              title="Savings"
-              icon={<PiggyBank className="h-5 w-5 text-chart-3" />}
-              allocated={savingsTotal}
-              spent={savingsSpent}
-              colorClass="bg-chart-3"
-            />
-          </div>
-
-          <ExpenseList expenses={expenses} />
-        </div>
-
-        <div className="space-y-8">
-            <AIAdvisorCard expenses={expenses} income={income} />
-            <AddExpenseForm />
+          
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <BudgetCategoryCard
+                title="Needs"
+                icon={<Home className="h-5 w-5 text-chart-1" />}
+                allocated={needsTotal}
+                spent={needsSpent}
+                colorClass="bg-chart-1"
+              />
+              <BudgetCategoryCard
+                title="Wants"
+                icon={<Sparkles className="h-5 w-5 text-chart-2" />}
+                allocated={wantsTotal}
+                spent={wantsSpent}
+                colorClass="bg-chart-2"
+              />
+              <BudgetCategoryCard
+                title="Savings"
+                icon={<PiggyBank className="h-5 w-5 text-chart-3" />}
+                allocated={savingsTotal}
+                spent={savingsSpent}
+                colorClass="bg-chart-3"
+              />
+            </div>
+            
             <ExpenseBreakdownChart expenses={expenses} />
-        </div>
-      </div>
+        </TabsContent>
+        
+        <TabsContent value="expenses" className="space-y-8">
+            <div className="grid gap-8 md:grid-cols-5">
+              <div className="md:col-span-3">
+                <ExpenseList expenses={expenses} />
+              </div>
+              <div className="md:col-span-2">
+                <AddExpenseForm />
+              </div>
+            </div>
+        </TabsContent>
+        
+        <TabsContent value="advisor">
+            <AIAdvisorCard expenses={expenses} income={income} />
+        </TabsContent>
+      </Tabs>
+
       <div className="flex justify-center pt-4">
         <Button variant="outline" onClick={logout} className="glassmorphism">
             <LogOut className="mr-2 h-4 w-4" />
