@@ -12,14 +12,6 @@
         "income": {
           "type": "number",
           "description": "The user's monthly income."
-        },
-        "savingsGoal": {
-          "type": "number",
-          "description": "The user's monthly savings goal."
-        },
-        "bio": {
-          "type": "string",
-          "description": "A short bio about the user's financial goals."
         }
       },
       "required": [
