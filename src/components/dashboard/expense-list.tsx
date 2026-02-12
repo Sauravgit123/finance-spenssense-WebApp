@@ -45,17 +45,17 @@ const categoryDetails = {
   Needs: { 
     icon: <Home className="h-4 w-4" />, 
     badgeVariant: 'default' as const,
-    color: 'text-blue-500'
+    color: 'text-chart-1'
   },
   Wants: { 
     icon: <Sparkles className="h-4 w-4" />,
     badgeVariant: 'secondary' as const,
-    color: 'text-purple-500'
+    color: 'text-chart-2'
   },
   Savings: { 
     icon: <PiggyBank className="h-4 w-4" />,
     badgeVariant: 'outline' as const,
-    color: 'text-green-500'
+    color: 'text-chart-3'
   },
 };
 
