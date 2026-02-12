@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-// Validation schema is now lenient. No fields are strictly required for an update.
+// Lenient schema: All fields are optional.
 const profileSchema = z.object({
   displayName: z.string().optional(),
   bio: z.string().optional(),
@@ -46,7 +46,7 @@ export default function ProfilePage() {
     },
   });
 
-  // Effect to populate the form and image preview once user data is loaded
+  // Effect to populate form and image preview once user data is loaded.
   useEffect(() => {
     if (userData) {
       form.reset({
@@ -63,7 +63,6 @@ export default function ProfilePage() {
     }
   }, [userData, user, form]);
 
-  // Handles file selection and sets up a local preview
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
@@ -72,7 +71,7 @@ export default function ProfilePage() {
     }
   };
 
-  // The core function to handle profile updates
+  // Simplified and reliable onSubmit function.
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
@@ -81,10 +80,9 @@ export default function ProfilePage() {
     setIsUpdating(true);
 
     try {
-      // Use the current photoURL as a fallback
       let newPhotoURL = userData?.photoURL || user.photoURL || null;
 
-      // Step 1: Upload a new image if one was selected
+      // 1. Upload new image if selected
       if (imageFile) {
         const filePath = `profile-pictures/${user.uid}/${imageFile.name}`;
         const storageRef = ref(storage, filePath);
@@ -92,7 +90,7 @@ export default function ProfilePage() {
         newPhotoURL = await getDownloadURL(uploadResult.ref);
       }
       
-      // Step 2: Prepare data for Firestore and Auth updates
+      // 2. Prepare data for updates
       const firestoreUpdates = {
         displayName: data.displayName,
         bio: data.bio,
@@ -104,12 +102,13 @@ export default function ProfilePage() {
         photoURL: newPhotoURL,
       };
 
-      // Step 3: Perform the updates
+      // 3. Perform the updates
       const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, firestoreUpdates, { merge: true }); // Use setDoc with merge to prevent overwriting
+      // Use setDoc with merge to create or update the document without overwriting other fields.
+      await setDoc(userDocRef, firestoreUpdates, { merge: true });
       await updateProfile(user, authUpdates);
 
-      // Step 4: CRITICAL - Force a refresh of user data across the app
+      // 4. CRITICAL - Force a refresh of user data across the app
       await refreshUserData();
 
       toast({
@@ -125,7 +124,7 @@ export default function ProfilePage() {
         description: error.message || 'There was an error updating your profile.',
       });
     } finally {
-      // Step 5: Always turn off the loading state
+      // 5. Always turn off the loading state
       setIsUpdating(false);
     }
   };
@@ -163,7 +162,7 @@ export default function ProfilePage() {
     );
   }
 
-  // The main profile form
+  // The main profile form, styled for dark mode.
   return (
     <main className="container mx-auto max-w-2xl p-4 md:p-8">
       <div className="mb-8">
