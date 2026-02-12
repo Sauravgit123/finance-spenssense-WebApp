@@ -7,6 +7,8 @@ import { useFirebaseAuth, useFirestore } from './provider';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { UserData } from '@/lib/types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface AuthContextType {
   user: User | null;
@@ -38,7 +40,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false);
           },
           (error) => {
-            console.error("Error fetching user data:", error);
+            const permissionError = new FirestorePermissionError({
+              path: userDocRef.path,
+              operation: 'get',
+            });
+            errorEmitter.emit('permission-error', permissionError);
             setUserData(null);
             setLoading(false);
           }
