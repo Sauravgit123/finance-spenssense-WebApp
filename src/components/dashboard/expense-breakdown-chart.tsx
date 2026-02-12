@@ -42,9 +42,6 @@ const ProfessionalTooltip = ({ active, payload }: any) => {
         <p className="mt-2 text-sm font-semibold text-foreground">
           {formatCurrency(data.value)}
         </p>
-        <p className="text-xs text-muted-foreground">
-          ({(data.percent * 100).toFixed(0)}% of total spending)
-        </p>
       </div>
     );
   }
