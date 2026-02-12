@@ -25,27 +25,29 @@ const chartConfig = {
   },
 } satisfies React.ComponentProps<typeof ChartContainer>["config"]
 
-// This shape is for the currently HOVERED segment. It's more prominent.
+// This shape is for the currently HOVERED segment.
 const renderActiveShape = (props: any) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent } = props;
 
   return (
     <g>
-      <text x={cx} y={cy} dy={8} textAnchor="middle" fill={fill} className="text-lg font-semibold">
+      <text x={cx} y={cy - 15} textAnchor="middle" dominantBaseline="central" fill="hsl(var(--foreground))" className="text-3xl font-bold">
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+      <text x={cx} y={cy + 15} textAnchor="middle" fill={fill} className="text-lg font-semibold">
         {payload.category}
       </text>
       <Sector
         cx={cx}
         cy={cy}
         innerRadius={innerRadius}
-        outerRadius={outerRadius + 4} // The pop-out effect
+        outerRadius={outerRadius}
         startAngle={startAngle}
         endAngle={endAngle}
         fill={fill}
+        stroke={'hsl(var(--border))'}
+        strokeWidth={2}
       />
-       <text x={cx} y={cy - 20} textAnchor="middle" dominantBaseline="central" fill="hsl(var(--foreground))" className="text-2xl font-bold">
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
     </g>
   );
 };
@@ -97,6 +99,7 @@ export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) 
               <Pie
                 activeIndex={activeIndex}
                 activeShape={renderActiveShape}
+                inactiveShape={(props) => <Sector {...props} opacity={0.4} />}
                 data={chartData}
                 dataKey="total"
                 nameKey="category"
