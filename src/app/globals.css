@@ -58,4 +58,13 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  @keyframes float-up {
+    0% {
+      transform: translateY(0) rotate(0);
+    }
+    100% {
+      transform: translateY(-120vh) rotate(var(--end-rotation));
+    }
+  }
 }
