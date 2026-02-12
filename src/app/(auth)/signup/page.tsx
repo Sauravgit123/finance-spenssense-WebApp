@@ -22,6 +22,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const formSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -51,12 +53,10 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       
-      // Update Firebase Auth profile
       await updateProfile(user, {
         displayName: values.displayName,
       });
 
-      // Create user document in Firestore
       const userDocRef = doc(db, 'users', user.uid);
       const initialUserData = {
         displayName: values.displayName,
@@ -66,21 +66,38 @@ export default function SignupPage() {
         currency: 'USD',
         savingsGoal: 0,
       };
-      await setDoc(userDocRef, initialUserData);
 
-      toast({
-        title: 'Account created.',
-        description: "We've created your account for you.",
-      });
-      router.push('/dashboard');
+      setDoc(userDocRef, initialUserData)
+        .then(() => {
+            toast({
+              title: 'Account created.',
+              description: "We've created your account for you.",
+            });
+            router.push('/dashboard');
+        })
+        .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: userDocRef.path,
+              operation: 'create',
+              requestResourceData: initialUserData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            // Even if doc creation fails, the auth user was made. Log them out to prevent inconsistent state.
+            auth.signOut();
+        })
+        .finally(() => {
+            // Only set loading to false in the finally block of the promise chain
+            setIsLoading(false);
+        });
+
     } catch (error: any) {
+      // This catch block will handle errors from createUserWithEmailAndPassword or updateProfile
       toast({
         variant: 'destructive',
         title: 'Uh oh! Something went wrong.',
         description: error.message,
       });
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Ensure loading is turned off on auth error
     }
   }
 
