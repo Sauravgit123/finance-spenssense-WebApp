@@ -12,8 +12,8 @@ import { ScrollArea } from '../ui/scroll-area';
 import { useAuth } from '@/firebase/auth-provider';
 
 interface AIAdvisorCardProps {
-  expenses: Expense[];
-  income: number;
+  expenses: Expense[]; // This is kept for potential future client-side use, but not sent to the API
+  income: number; // This is kept for potential future client-side use, but not sent to the API
 }
 
 interface Message {
@@ -32,7 +32,7 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || !user) return;
 
     const userMessage: Message = { sender: 'user', text: input };
     setMessages(prev => [...prev, userMessage]);
@@ -42,27 +42,22 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
     setError(null);
 
     try {
-      const expenseDataForAI = expenses.map(({ name, amount, category }) => ({
-        name,
-        amount,
-        category,
-      }));
+      const token = await user.getIdToken();
 
       const response = await fetch('/api/financial-advisor', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          expenses: expenseDataForAI,
-          income,
           query: currentInput,
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'An unknown error occurred.' }));
-        throw new Error(errorData.error || 'Failed to get a response from the server.');
+        const errorData = await response.json().catch(() => ({ error: 'An unknown server error occurred.' }));
+        throw new Error(errorData.error || `Request failed with status ${response.status}`);
       }
 
       const result = await response.json();
@@ -78,7 +73,7 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
       const errorMessage = 'Sorry, I couldn\'t generate a response right now. Please try again later.';
       
       setMessages(prev => prev.filter(msg => msg !== userMessage));
-      setError(errorMessage);
+      setError(e.message || errorMessage);
       setInput(currentInput); 
     } finally {
       setIsLoading(false);
@@ -159,7 +154,7 @@ export function AIAdvisorCard({ expenses, income }: AIAdvisorCardProps) {
             placeholder="e.g., Where can I save money?"
             disabled={isLoading}
           />
-          <Button type="submit" size="icon" disabled={isLoading} variant="outline" className="shrink-0">
+          <Button type="submit" size="icon" disabled={isLoading || !user} variant="outline" className="shrink-0">
             <Send className="h-4 w-4" />
           </Button>
         </form>
