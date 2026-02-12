@@ -9,7 +9,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center p-4">
       <LiveBackground />
       <div className="relative z-10 flex flex-col items-center justify-center w-full">
         <div className="mb-8">
@@ -17,6 +17,6 @@ export default function AuthLayout({
         </div>
         {children}
       </div>
-    </main>
+    </div>
   );
 }
