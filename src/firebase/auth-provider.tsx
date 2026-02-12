@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { doc, onSnapshot, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { useFirebaseAuth, useFirestore } from './provider';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,7 +13,6 @@ interface AuthContextType {
   userData: UserData | null;
   loading: boolean;
   logout: () => Promise<void>;
-  refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,38 +26,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const refreshUserData = useCallback(async () => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) return;
-    
-    // Manually reload the user's profile from Firebase Auth servers
-    await currentUser.reload();
-    // This gives us the most up-to-date auth-level info (displayName, photoURL)
-    // We need to create a new object to trigger a re-render in consumers of the context
-    setUser({ ...auth.currentUser } as User);
-    
-    // Also re-fetch the firestore doc for a more immediate UI update
-    const userDocRef = doc(db, 'users', currentUser.uid);
-    const docSnap = await getDoc(userDocRef);
-    if (docSnap.exists()) {
-      setUserData(docSnap.data() as UserData);
-    }
-  }, [auth, db]);
-
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // Set up a real-time listener for Firestore data
+        setUser(firebaseUser);
+        // Set up a real-time listener for Firestore user data
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         const unsubscribeSnapshot = onSnapshot(userDocRef, 
           (doc) => {
-            setUser(firebaseUser); // ensure user is updated from auth state change
             setUserData(doc.data() as UserData || null);
             setLoading(false);
           },
           (error) => {
             console.error("Error fetching user data:", error);
-            setUser(firebaseUser);
             setUserData(null);
             setLoading(false);
           }
@@ -98,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, userData, loading, logout, refreshUserData }}>
+    <AuthContext.Provider value={{ user, userData, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );

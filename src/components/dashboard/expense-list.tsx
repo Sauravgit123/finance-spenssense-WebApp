@@ -19,7 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import type { Expense } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Trash2, Home, Sparkles, PiggyBank, Pencil } from 'lucide-react';
+import { Trash2, Home, Sparkles, PiggyBank } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,7 +36,6 @@ import { useFirestore } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { EditExpenseForm } from './edit-expense-form';
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -67,8 +66,6 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
   const { toast } = useToast();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [expenseToEdit, setExpenseToEdit] = useState<Expense | null>(null);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -90,11 +87,6 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
   const handleDeleteRequest = (expense: Expense) => {
     setExpenseToDelete(expense);
     setIsDeleteDialogOpen(true);
-  };
-
-  const handleEditRequest = (expense: Expense) => {
-    setExpenseToEdit(expense);
-    setIsEditDialogOpen(true);
   };
 
   const handleConfirmDelete = async () => {
@@ -192,14 +184,6 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleEditRequest(expense)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                          <span className="sr-only">Edit expense</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
                           onClick={() => handleDeleteRequest(expense)}
                            className="text-destructive hover:text-destructive"
                         >
@@ -215,14 +199,6 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
           </Table>
         </CardContent>
       </Card>
-
-      {expenseToEdit && (
-        <EditExpenseForm
-          isOpen={isEditDialogOpen}
-          setIsOpen={setIsEditDialogOpen}
-          expense={expenseToEdit}
-        />
-      )}
       
       <AlertDialog
         open={isDeleteDialogOpen}

@@ -9,9 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { BudgetCategoryCard } from './budget-category-card';
 import { AddExpenseForm } from './add-expense-form';
 import { ExpenseList } from './expense-list';
-import { Home, Sparkles, PiggyBank, Edit, DollarSign, CreditCard, WalletCards, BadgePercent } from 'lucide-react';
-import { IncomeSetter } from './income-setter';
-import { Button } from '../ui/button';
+import { Home, Sparkles, PiggyBank, DollarSign, CreditCard, WalletCards, BadgePercent } from 'lucide-react';
 import { ExpenseBreakdownChart } from './expense-breakdown-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -30,16 +28,11 @@ export function DashboardContainer() {
   const db = useFirestore();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expensesLoading, setExpensesLoading] = useState(true);
-  const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   
   useEffect(() => {
     if (!user) {
       setExpensesLoading(false);
       return;
-    }
-    
-    if (!loading && userData && (!userData.income || userData.income === 0)) {
-        setIncomeModalOpen(true);
     }
 
     const expensesColRef = collection(db, 'users', user.uid, 'expenses');
@@ -61,7 +54,7 @@ export function DashboardContainer() {
     return () => {
       unsubscribeExpenses();
     };
-  }, [user, db, loading, userData]);
+  }, [user, db]);
 
   const { needsTotal, wantsTotal, savingsTotal, needsSpent, wantsSpent, savingsSpent, totalSpent } = useMemo(() => {
     const income = userData?.income || 0;
@@ -112,19 +105,7 @@ export function DashboardContainer() {
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">Welcome back, {userData?.displayName || user?.email}!</p>
         </div>
-        <div>
-          <Button variant="outline" onClick={() => setIncomeModalOpen(true)}>
-             <Edit className="mr-2 h-4 w-4" /> 
-             Edit Income
-          </Button>
-        </div>
       </div>
-      
-      <IncomeSetter
-        isOpen={isIncomeModalOpen}
-        setIsOpen={setIncomeModalOpen}
-        currentIncome={income}
-      />
       
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
