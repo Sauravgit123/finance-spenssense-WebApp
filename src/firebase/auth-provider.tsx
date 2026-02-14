@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { useFirebaseAuth, useFirestore } from './provider';
 import { useRouter, usePathname } from 'next/navigation';
 import type { UserData } from '@/lib/types';
@@ -40,33 +40,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Effect for auth state ONLY
+  // Effect for auth state AND user data fetching
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
+        // User is logged in, now listen for their data document in real-time
         const userDocRef = doc(db, 'users', firebaseUser.uid);
-        try {
-          const userDoc = await getDoc(userDocRef);
-          if (userDoc.exists()) {
-            setUserData(userDoc.data() as UserData);
-          } else {
-            console.warn("User document not found for UID:", firebaseUser.uid);
+        
+        const unsubscribeDoc = onSnapshot(userDocRef, 
+          (doc) => {
+            if (doc.exists()) {
+              setUserData(doc.data() as UserData);
+            } else {
+              // User document doesn't exist. Don't log them out.
+              // The app can handle this state (e.g., prompt to create a profile).
+              console.warn("User document not found for UID:", firebaseUser.uid);
+              setUserData(null);
+            }
+            setLoading(false); // Auth and initial data check is complete
+          },
+          (error) => {
+            // Firestore permission error, etc.
+            console.error("Error fetching user document:", error);
+             const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'get',
+             });
+             errorEmitter.emit('permission-error', permissionError);
+            // Don't log the user out. Let them stay on the page.
             setUserData(null);
-            await signOut(auth);
+            setLoading(false); // Auth and initial data check is complete
           }
-        } catch (error) {
-          const permissionError = new FirestorePermissionError({
-            path: userDocRef.path,
-            operation: 'get',
-          });
-          errorEmitter.emit('permission-error', permissionError);
-          setUserData(null);
-          await signOut(auth);
-        } finally {
-          setLoading(false);
-        }
+        );
+        
+        // Return a cleanup function to unsubscribe from the document listener
+        // when the user logs out.
+        return () => unsubscribeDoc();
+
       } else {
+        // User is not logged in
         setUser(null);
         setUserData(null);
         setLoading(false);
@@ -102,8 +115,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
   
-  // Show a loader during initial auth check, or on protected pages when the user is not yet authenticated
-  // This prevents flickering content before the redirect can happen.
   if (loading || (!user && !isPublicPath)) {
       return <FullScreenLoader />;
   }
