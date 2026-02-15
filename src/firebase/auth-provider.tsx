@@ -109,9 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await signOut(auth);
-    // Explicitly navigate to login after sign out for a clean transition
-    router.push('/login');
-  }, [auth, router]);
+    // The onAuthStateChanged listener and the routing useEffect will handle the redirect.
+  }, [auth]);
   
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
   
