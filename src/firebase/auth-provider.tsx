@@ -108,9 +108,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, loading, pathname, router]);
 
   const logout = useCallback(async () => {
+    // Redirect to login page *before* signing out.
+    // This will unmount the dashboard and its listeners cleanly.
+    await router.push('/login');
+    // Now that we are on the login page, we can safely sign out.
     await signOut(auth);
-    // The onAuthStateChanged listener and the routing useEffect will handle the redirect.
-  }, [auth]);
+  }, [auth, router]);
   
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
   
