@@ -53,33 +53,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (doc.exists()) {
               setUserData(doc.data() as UserData);
             } else {
-              // User document doesn't exist. Don't log them out.
-              // The app can handle this state (e.g., prompt to create a profile).
               console.warn("User document not found for UID:", firebaseUser.uid);
               setUserData(null);
             }
             setLoading(false); // Auth and initial data check is complete
           },
           (error) => {
-            // Firestore permission error, etc.
             console.error("Error fetching user document:", error);
-             const permissionError = new FirestorePermissionError({
-                path: userDocRef.path,
-                operation: 'get',
-             });
-             errorEmitter.emit('permission-error', permissionError);
-            // Don't log the user out. Let them stay on the page.
+             // Only emit error if a user is still logged in. This prevents errors during logout.
+             if (auth.currentUser && auth.currentUser.uid === firebaseUser.uid) {
+                const permissionError = new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'get',
+                });
+                errorEmitter.emit('permission-error', permissionError);
+             }
             setUserData(null);
             setLoading(false); // Auth and initial data check is complete
           }
         );
         
-        // Return a cleanup function to unsubscribe from the document listener
-        // when the user logs out.
         return () => unsubscribeDoc();
 
       } else {
-        // User is not logged in
         setUser(null);
         setUserData(null);
         setLoading(false);
@@ -108,12 +104,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, loading, pathname, router]);
 
   const logout = useCallback(async () => {
-    // Redirect to login page *before* signing out.
-    // This will unmount the dashboard and its listeners cleanly.
-    await router.push('/login');
-    // Now that we are on the login page, we can safely sign out.
+    // This will sign the user out, and the useEffect hooks above will handle
+    // the state cleanup and redirection automatically.
     await signOut(auth);
-  }, [auth, router]);
+  }, [auth]);
   
   const isPublicPath = PUBLIC_PATHS.includes(pathname);
   

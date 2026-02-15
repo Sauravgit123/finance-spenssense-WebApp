@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/firebase/auth-provider';
-import { useFirestore } from '@/firebase/provider';
+import { useFirestore, useFirebaseAuth } from '@/firebase/provider';
 import type { Expense } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BudgetCategoryCard } from './budget-category-card';
@@ -28,6 +28,7 @@ const formatCurrency = (amount: number) => {
 export function DashboardContainer() {
   const { user, userData, loading } = useAuth();
   const db = useFirestore();
+  const auth = useFirebaseAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expensesLoading, setExpensesLoading] = useState(true);
   
@@ -45,18 +46,22 @@ export function DashboardContainer() {
       setExpenses(expensesData);
       setExpensesLoading(false);
     }, (error) => {
-        const permissionError = new FirestorePermissionError({
-          path: expensesColRef.path,
-          operation: 'list',
-        });
-        errorEmitter.emit('permission-error', permissionError);
+        // Only emit an error if a user is still logged in.
+        // This prevents the error toast from showing during the logout process.
+        if (auth.currentUser) {
+            const permissionError = new FirestorePermissionError({
+              path: expensesColRef.path,
+              operation: 'list',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
         setExpensesLoading(false);
     });
 
     return () => {
       unsubscribeExpenses();
     };
-  }, [user, db]);
+  }, [user, db, auth]);
 
   const { needsTotal, wantsTotal, savingsTotal, needsSpent, wantsSpent, savingsSpent, totalSpent } = useMemo(() => {
     const income = userData?.income || 0;
