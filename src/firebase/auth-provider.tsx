@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
+import { onIdTokenChanged, signOut, type User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { useFirebaseAuth, useFirestore } from './provider';
 import { useRouter, usePathname } from 'next/navigation';
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Effect for auth state AND user data fetching
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribeAuth = onIdTokenChanged(auth, (firebaseUser) => {
       setUser(firebaseUser); // Set user immediately
 
       if (firebaseUser) {
@@ -89,16 +89,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (loading) return;
 
     const isAuthPath = AUTH_PATHS.includes(pathname);
-    const isOnVerifyEmailPage = pathname === '/verify-email';
 
     // Case 1: User is NOT logged in.
     if (!user) {
       // If they are on a protected page, redirect to /login.
       if (!isAuthPath) {
-        router.push('/login');
-      }
-      // If they are on the verify email page without being logged in (e.g. after logout), also redirect to /login.
-      if (isOnVerifyEmailPage) {
         router.push('/login');
       }
       // Otherwise, they are on /login, /signup, etc. which is fine.
@@ -131,8 +126,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await signOut(auth);
+    router.push('/login');
     // The onAuthStateChanged listener and routing effect will handle the rest.
-  }, [auth]);
+  }, [auth, router]);
   
   // While loading, or if routing hasn't happened yet, show a loader.
   const isAuthPath = AUTH_PATHS.includes(pathname);
