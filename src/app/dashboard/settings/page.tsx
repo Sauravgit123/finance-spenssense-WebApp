@@ -59,7 +59,7 @@ export default function SettingsPage() {
   const selectedCurrency = form.watch('currency');
 
   useEffect(() => {
-    if (userData) {
+    if (userData && !form.formState.isDirty) {
       form.reset({
         displayName: userData.displayName || '',
         income: userData.income || 0,
@@ -68,7 +68,7 @@ export default function SettingsPage() {
         currency: userData.currency || 'USD',
       });
     }
-  }, [userData]);
+  }, [userData, form]);
 
   async function onSubmit(values: SettingsFormValues) {
     if (!user) {
@@ -153,7 +153,7 @@ export default function SettingsPage() {
                                 <FormItem>
                                 <FormLabel>Monthly Income ({selectedCurrency})</FormLabel>
                                 <FormControl>
-                                    <Input type="number" step="100" placeholder="e.g., 5000" {...field} value={field.value ?? ''} />
+                                    <Input type="number" step="100" placeholder="e.g., 5000" {...field} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
@@ -169,7 +169,7 @@ export default function SettingsPage() {
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select a currency" />
-                                    </Trigger>
+                                    </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
                                     <SelectItem value="USD">USD ($)</SelectItem>
@@ -189,7 +189,7 @@ export default function SettingsPage() {
                         <FormItem>
                         <FormLabel>Monthly Savings Goal ({selectedCurrency})</FormLabel>
                         <FormControl>
-                            <Input type="number" step="50" placeholder="e.g., 500" {...field} value={field.value ?? ''} />
+                            <Input type="number" step="50" placeholder="e.g., 500" {...field} />
                         </FormControl>
                          <FormMessage />
                         </FormItem>
