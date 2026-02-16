@@ -68,7 +68,7 @@ export default function SettingsPage() {
         currency: userData.currency || 'USD',
       });
     }
-  }, [userData, form.reset, form.formState.isDirty]);
+  }, [userData, form]);
 
   async function onSubmit(values: SettingsFormValues) {
     if (!user) {
@@ -85,6 +85,7 @@ export default function SettingsPage() {
           title: 'Settings Saved!',
           description: 'Your profile has been updated successfully.',
         });
+        form.reset(values, { keepValues: true });
       })
       .catch((serverError) => {
         const permissionError = new FirestorePermissionError({
