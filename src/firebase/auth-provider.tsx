@@ -89,26 +89,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (loading) return;
 
     const isAuthPath = AUTH_PATHS.includes(pathname);
+    const isOnVerifyEmailPage = pathname === '/verify-email';
 
-    // If user is not logged in and is trying to access a protected page, redirect to login
-    if (!user && !isAuthPath) {
-      router.push('/login');
+    // Case 1: User is NOT logged in.
+    if (!user) {
+      // If they are on a protected page, redirect to /login.
+      if (!isAuthPath) {
+        router.push('/login');
+      }
+      // If they are on the verify email page without being logged in (e.g. after logout), also redirect to /login.
+      if (isOnVerifyEmailPage) {
+        router.push('/login');
+      }
+      // Otherwise, they are on /login, /signup, etc. which is fine.
+      return;
+    }
+
+    // From here, we know `user` is not null.
+
+    // Case 2: User is logged in, but NOT verified.
+    if (!user.emailVerified) {
+      // If they are trying to access a protected page, redirect to /verify-email.
+      if (!isAuthPath) {
+        router.push('/verify-email');
+      }
+      // Otherwise, they are on an auth page. Let them stay, they might need to use "forgot password" or want to logout.
       return;
     }
     
-    if (user) {
-        // If user is logged in and VERIFIED, and on an auth page, redirect to dashboard
-        if (user.emailVerified && isAuthPath) {
-            router.push('/dashboard');
-            return;
-        }
-
-        // If user is logged in but NOT VERIFIED, redirect them to the verify-email page
-        // unless they are already on an auth page.
-        if (!user.emailVerified && !isAuthPath) {
-            router.push('/verify-email');
-            return;
-        }
+    // Case 3: User is logged in AND verified.
+    if (user.emailVerified) {
+      // If they are on any auth page, redirect to dashboard.
+      if (isAuthPath) {
+        router.push('/dashboard');
+      }
+      // Otherwise they are on a protected page, which is correct.
+      return;
     }
 
   }, [user, loading, pathname, router]);
