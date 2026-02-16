@@ -42,12 +42,9 @@ export default function LoginPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
+      // The AuthProvider will handle the redirect based on email verification status.
       await signInWithEmailAndPassword(auth, values.email, values.password);
-      toast({
-        title: 'Success!',
-        description: 'You will be redirected to your dashboard.',
-      });
-      // The AuthProvider will handle the redirect automatically.
+      // No toast here, AuthProvider handles UX.
     } catch (error: any) {
       let description = 'An unexpected error occurred. Please try again.';
       switch (error.code) {

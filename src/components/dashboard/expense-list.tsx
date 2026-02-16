@@ -36,9 +36,11 @@ import { useFirestore } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { formatCurrency } from '@/lib/currency';
 
 interface ExpenseListProps {
   expenses: Expense[];
+  currency: string;
 }
 
 const categoryDetails = {
@@ -60,19 +62,12 @@ const categoryDetails = {
 };
 
 
-export function ExpenseList({ expenses }: ExpenseListProps) {
+export function ExpenseList({ expenses, currency }: ExpenseListProps) {
   const { user } = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
 
   const formatDate = (timestamp: any) => {
     if (!timestamp || typeof timestamp.toDate !== 'function') {
@@ -174,7 +169,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {formatCurrency(expense.amount)}
+                      {formatCurrency(expense.amount, currency)}
                     </TableCell>
                     <TableCell className="text-right">
                       {formatDate(expense.createdAt)}

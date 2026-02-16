@@ -20,7 +20,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const PUBLIC_PATHS = ['/login', '/signup', '/forgot-password'];
+const AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/verify-email'];
 
 const FullScreenLoader = () => (
     <div className="flex min-h-screen w-full flex-col items-center justify-center">
@@ -43,8 +43,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Effect for auth state AND user data fetching
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser); // Set user immediately
+
       if (firebaseUser) {
-        setUser(firebaseUser);
         // User is logged in, now listen for their data document in real-time
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         
@@ -60,7 +61,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           },
           (error) => {
             console.error("Error fetching user document:", error);
-             // Only emit error if a user is still logged in. This prevents errors during logout.
              if (auth.currentUser && auth.currentUser.uid === firebaseUser.uid) {
                 const permissionError = new FirestorePermissionError({
                     path: userDocRef.path,
@@ -76,7 +76,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => unsubscribeDoc();
 
       } else {
-        setUser(null);
         setUserData(null);
         setLoading(false);
       }
@@ -87,33 +86,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Effect for routing ONLY
   useEffect(() => {
-    if (loading) return; // Don't do anything until auth state is resolved
+    if (loading) return;
 
-    const isPublicPath = PUBLIC_PATHS.includes(pathname);
+    const isAuthPath = AUTH_PATHS.includes(pathname);
 
     // If user is not logged in and is trying to access a protected page, redirect to login
-    if (!user && !isPublicPath) {
+    if (!user && !isAuthPath) {
       router.push('/login');
+      return;
     }
     
-    // If user is logged in and is on a public auth page, redirect to dashboard
-    if (user && isPublicPath) {
-      router.push('/dashboard');
+    if (user) {
+        // If user is logged in and VERIFIED, and on an auth page, redirect to dashboard
+        if (user.emailVerified && isAuthPath) {
+            router.push('/dashboard');
+            return;
+        }
+
+        // If user is logged in but NOT VERIFIED, redirect them to the verify-email page
+        // unless they are already on an auth page.
+        if (!user.emailVerified && !isAuthPath) {
+            router.push('/verify-email');
+            return;
+        }
     }
 
   }, [user, loading, pathname, router]);
 
   const logout = useCallback(async () => {
-    // This will sign the user out, and the useEffect hooks above will handle
-    // the state cleanup and redirection automatically.
     await signOut(auth);
+    // The onAuthStateChanged listener and routing effect will handle the rest.
   }, [auth]);
   
-  const isPublicPath = PUBLIC_PATHS.includes(pathname);
-  
-  if (loading || (!user && !isPublicPath)) {
+  // While loading, or if routing hasn't happened yet, show a loader.
+  const isAuthPath = AUTH_PATHS.includes(pathname);
+  if (loading || (!user && !isAuthPath)) {
       return <FullScreenLoader />;
   }
+
+  // If user is logged in but not verified, and trying to access dashboard, show loader
+  // while redirecting to /verify-email.
+  if (user && !user.emailVerified && !isAuthPath) {
+      return <FullScreenLoader />;
+  }
+
 
   return (
     <AuthContext.Provider value={{ user, userData, loading, logout }}>

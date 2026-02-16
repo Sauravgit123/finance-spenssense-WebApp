@@ -17,13 +17,8 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { AIAdvisorCard } from './ai-advisor-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SetIncomeCard } from './set-income-card';
+import { formatCurrency } from '@/lib/currency';
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-};
 
 export function DashboardContainer() {
   const { user, userData, loading } = useAuth();
@@ -31,6 +26,7 @@ export function DashboardContainer() {
   const auth = useFirebaseAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expensesLoading, setExpensesLoading] = useState(true);
+  const currency = userData?.currency || 'USD';
   
   useEffect(() => {
     if (!user) {
@@ -146,7 +142,7 @@ export function DashboardContainer() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(income)}</div>
+                  <div className="text-2xl font-bold">{formatCurrency(income, currency)}</div>
                 </CardContent>
               </Card>
               <Card className="glassmorphism transition-all duration-200 hover:scale-105">
@@ -155,7 +151,7 @@ export function DashboardContainer() {
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(totalSpent)}</div>
+                  <div className="text-2xl font-bold">{formatCurrency(totalSpent, currency)}</div>
                 </CardContent>
               </Card>
               <Card className="glassmorphism transition-all duration-200 hover:scale-105">
@@ -164,7 +160,7 @@ export function DashboardContainer() {
                   <WalletCards className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-2xl font-bold ${remainingIncome < 0 ? 'text-destructive' : ''}`}>{formatCurrency(remainingIncome)}</div>
+                  <div className={`text-2xl font-bold ${remainingIncome < 0 ? 'text-destructive' : ''}`}>{formatCurrency(remainingIncome, currency)}</div>
                 </CardContent>
               </Card>
               <Card className="glassmorphism transition-all duration-200 hover:scale-105">
@@ -185,6 +181,7 @@ export function DashboardContainer() {
                 allocated={needsTotal}
                 spent={needsSpent}
                 colorClass="bg-chart-1"
+                currency={currency}
               />
               <BudgetCategoryCard
                 title="Wants"
@@ -192,6 +189,7 @@ export function DashboardContainer() {
                 allocated={wantsTotal}
                 spent={wantsSpent}
                 colorClass="bg-chart-2"
+                currency={currency}
               />
               <BudgetCategoryCard
                 title="Savings"
@@ -199,19 +197,20 @@ export function DashboardContainer() {
                 allocated={savingsTotal}
                 spent={savingsSpent}
                 colorClass="bg-chart-3"
+                currency={currency}
               />
             </div>
             
-            <ExpenseBreakdownChart expenses={expenses} />
+            <ExpenseBreakdownChart expenses={expenses} currency={currency} />
         </TabsContent>
         
         <TabsContent value="expenses" className="space-y-8">
             <div className="grid gap-8 md:grid-cols-5">
               <div className="md:col-span-3">
-                <ExpenseList expenses={expenses} />
+                <ExpenseList expenses={expenses} currency={currency} />
               </div>
               <div className="md:col-span-2">
-                <AddExpenseForm />
+                <AddExpenseForm currency={currency} />
               </div>
             </div>
         </TabsContent>

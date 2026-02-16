@@ -13,8 +13,13 @@ export interface Expense {
   createdAt: Timestamp;
 }
 
+export type Currency = 'USD' | 'INR' | 'EUR';
+
 export interface UserData {
   income: number;
   displayName?: string;
   photoURL?: string;
+  currency?: Currency;
+  savingsGoal?: number;
+  bio?: string;
 }

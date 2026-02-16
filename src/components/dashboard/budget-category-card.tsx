@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { formatCurrency } from '@/lib/currency';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 
@@ -11,6 +12,7 @@ interface BudgetCategoryCardProps {
   allocated: number;
   spent: number;
   colorClass: string;
+  currency: string;
 }
 
 export function BudgetCategoryCard({
@@ -19,6 +21,7 @@ export function BudgetCategoryCard({
   allocated,
   spent,
   colorClass,
+  currency,
 }: BudgetCategoryCardProps) {
   const [progress, setProgress] = useState(0);
   
@@ -31,10 +34,6 @@ export function BudgetCategoryCard({
     return () => clearTimeout(timer);
   }, [displayProgress]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-  };
-  
   const isOverBudget = rawProgressValue > 100;
 
   return (
@@ -44,18 +43,18 @@ export function BudgetCategoryCard({
         <div className="text-muted-foreground">{icon}</div>
       </CardHeader>
       <CardContent className="pt-2">
-        <div className={cn("text-2xl font-bold", isOverBudget && "text-destructive")}>{formatCurrency(spent)}</div>
+        <div className={cn("text-2xl font-bold", isOverBudget && "text-destructive")}>{formatCurrency(spent, currency)}</div>
         <p className="text-xs text-muted-foreground">
-          of {formatCurrency(allocated)} budget
+          of {formatCurrency(allocated, currency)} budget
         </p>
         <Progress value={progress} indicatorClassName={cn(isOverBudget ? 'bg-destructive' : colorClass)} className="mt-4 h-2" />
         <div className="flex justify-between text-xs font-medium text-muted-foreground mt-1">
            {isOverBudget ? (
-            <span className="font-bold text-destructive">{formatCurrency(spent - allocated)} Over Budget</span>
+            <span className="font-bold text-destructive">{formatCurrency(spent - allocated, currency)} Over Budget</span>
            ) : (
             <>
               <span>{Math.round(rawProgressValue)}% Used</span>
-              <span>{formatCurrency(allocated - spent)} Left</span>
+              <span>{formatCurrency(allocated - spent, currency)} Left</span>
             </>
            )}
         </div>

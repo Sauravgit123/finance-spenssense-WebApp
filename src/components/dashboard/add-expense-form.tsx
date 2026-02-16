@@ -39,7 +39,11 @@ const formSchema = z.object({
   category: z.enum(['Needs', 'Wants', 'Savings']),
 });
 
-export function AddExpenseForm() {
+interface AddExpenseFormProps {
+    currency: string;
+}
+
+export function AddExpenseForm({ currency }: AddExpenseFormProps) {
   const { user } = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
@@ -111,7 +115,7 @@ export function AddExpenseForm() {
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Amount ($)</FormLabel>
+                  <FormLabel>Amount ({currency})</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" placeholder="e.g., 75.50" {...field} value={field.value ?? ''} />
                   </FormControl>

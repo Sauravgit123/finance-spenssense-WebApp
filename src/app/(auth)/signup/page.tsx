@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
 import { useFirebaseAuth, useFirestore } from '@/firebase/provider';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { MailCheck } from 'lucide-react';
 
 const formSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -35,6 +36,7 @@ export default function SignupPage() {
   const db = useFirestore();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isVerificationSent, setIsVerificationSent] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -59,30 +61,15 @@ export default function SignupPage() {
       const initialUserData = {
         displayName: values.displayName,
         income: 0,
+        currency: 'USD',
+        savingsGoal: 0,
+        bio: '',
       };
+      
+      await setDoc(userDocRef, initialUserData);
+      await sendEmailVerification(user);
 
-      setDoc(userDocRef, initialUserData)
-        .then(() => {
-            toast({
-              title: 'Account created.',
-              description: "We've created your account for you.",
-            });
-            // The AuthProvider will handle the redirect automatically.
-        })
-        .catch((serverError) => {
-            const permissionError = new FirestorePermissionError({
-              path: userDocRef.path,
-              operation: 'create',
-              requestResourceData: initialUserData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            // Even if doc creation fails, the auth user was made. Log them out to prevent inconsistent state.
-            auth.signOut();
-        })
-        .finally(() => {
-            // Only set loading to false in the finally block of the promise chain
-            setIsLoading(false);
-        });
+      setIsVerificationSent(true);
 
     } catch (error: any) {
       let description = "An unexpected error occurred. Please try again.";
@@ -104,9 +91,34 @@ export default function SignupPage() {
         title: 'Sign-up Failed',
         description: description,
       });
-      setIsLoading(false); // Ensure loading is turned off on auth error
+    } finally {
+      setIsLoading(false);
     }
   }
+
+  if (isVerificationSent) {
+    return (
+        <Card className="w-full max-w-sm text-center">
+            <CardHeader>
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/50">
+                    <MailCheck className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <CardTitle className="mt-4">Verify your email</CardTitle>
+                <CardDescription>
+                We&apos;ve sent a verification link to your email address. Please click the link to continue.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Link href="/login">
+                    <Button variant="outline" className="w-full">
+                        Back to Login
+                    </Button>
+                </Link>
+            </CardContent>
+        </Card>
+    );
+  }
+
 
   return (
     <Card className="w-full max-w-sm">

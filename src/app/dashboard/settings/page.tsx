@@ -26,6 +26,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatCurrency } from '@/lib/currency';
 
 const settingsFormSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }).max(50, { message: 'Name must not be longer than 50 characters.' }),
@@ -38,6 +40,7 @@ const settingsFormSchema = z.object({
     z.number().min(0, { message: 'Savings goal cannot be negative.' })
   ),
   bio: z.string().max(160, { message: 'Bio must not be longer than 160 characters.' }).optional(),
+  currency: z.enum(['USD', 'INR', 'EUR']),
 });
 
 type SettingsFormValues = z.infer<typeof settingsFormSchema>;
@@ -55,8 +58,11 @@ export default function SettingsPage() {
       income: 0,
       savingsGoal: 0,
       bio: '',
+      currency: 'USD',
     },
   });
+
+  const selectedCurrency = form.watch('currency');
 
   useEffect(() => {
     if (userData) {
@@ -65,6 +71,7 @@ export default function SettingsPage() {
         income: userData.income || 0,
         savingsGoal: userData.savingsGoal || 0,
         bio: userData.bio || '',
+        currency: userData.currency || 'USD',
       });
     }
   }, [userData, form]);
@@ -108,6 +115,7 @@ export default function SettingsPage() {
                       <div className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-10 w-full" /></div>
                       <div className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-10 w-full" /></div>
                       <div className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-10 w-full" /></div>
+                      <div className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-10 w-full" /></div>
                       <div className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-20 w-full" /></div>
                       <Skeleton className="h-10 w-full" />
                   </CardContent>
@@ -143,25 +151,49 @@ export default function SettingsPage() {
                         </FormItem>
                     )}
                     />
-                    <FormField
-                    control={form.control}
-                    name="income"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Monthly Income ($)</FormLabel>
-                        <FormControl>
-                            <Input type="number" step="100" placeholder="e.g., 5000" {...field} value={field.value ?? ''} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="income"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Monthly Income ({selectedCurrency})</FormLabel>
+                                <FormControl>
+                                    <Input type="number" step="100" placeholder="e.g., 5000" {...field} value={field.value ?? ''} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="currency"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Currency</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a currency" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    <SelectItem value="USD">USD ($)</SelectItem>
+                                    <SelectItem value="INR">INR (₹)</SelectItem>
+                                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                     <FormField
                     control={form.control}
                     name="savingsGoal"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Monthly Savings Goal ($)</FormLabel>
+                        <FormLabel>Monthly Savings Goal ({selectedCurrency})</FormLabel>
                         <FormControl>
                             <Input type="number" step="50" placeholder="e.g., 500" {...field} value={field.value ?? ''} />
                         </FormControl>

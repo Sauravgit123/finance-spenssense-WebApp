@@ -7,6 +7,7 @@ import { type Expense } from '@/lib/types';
 import {
   ChartContainer,
 } from "@/components/ui/chart";
+import { formatCurrency } from '@/lib/currency';
 
 const chartConfig = {
   Needs: {
@@ -23,12 +24,9 @@ const chartConfig = {
   },
 } satisfies React.ComponentProps<typeof ChartContainer>["config"];
 
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-};
 
 // A simple, professional tooltip to show details on hover.
-const ProfessionalTooltip = ({ active, payload }: any) => {
+const ProfessionalTooltip = ({ active, payload, currency }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0];
     return (
@@ -40,7 +38,7 @@ const ProfessionalTooltip = ({ active, payload }: any) => {
           </p>
         </div>
         <p className="mt-2 text-sm font-semibold text-foreground">
-          {formatCurrency(data.value)}
+          {formatCurrency(data.value, currency)}
         </p>
       </div>
     );
@@ -51,9 +49,10 @@ const ProfessionalTooltip = ({ active, payload }: any) => {
 
 interface ExpenseBreakdownChartProps {
   expenses: Expense[];
+  currency: string;
 }
 
-export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) {
+export function ExpenseBreakdownChart({ expenses, currency }: ExpenseBreakdownChartProps) {
   const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
 
   const chartData = React.useMemo(() => {
@@ -102,7 +101,7 @@ export function ExpenseBreakdownChart({ expenses }: ExpenseBreakdownChartProps) 
             <PieChart>
               <Tooltip
                 cursor={{ fill: 'transparent' }}
-                content={<ProfessionalTooltip />}
+                content={<ProfessionalTooltip currency={currency} />}
               />
               <Pie
                 data={chartData}

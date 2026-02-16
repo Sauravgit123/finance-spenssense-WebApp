@@ -93,9 +93,9 @@ export function SetIncomeCard() {
                 name="income"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Monthly Income ($)</FormLabel>
+                    <FormLabel>Monthly Income</FormLabel>
                     <FormControl>
-                        <Input type="number" step="100" placeholder="e.g., 5000" {...field} value={field.value ?? ''} />
+                        <Input type="number" step="100" placeholder="e.g., 50000" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>

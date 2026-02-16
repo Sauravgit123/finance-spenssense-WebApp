@@ -12,6 +12,28 @@
         "income": {
           "type": "number",
           "description": "The user's monthly income."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The user's preferred currency code.",
+          "enum": [
+            "USD",
+            "INR",
+            "EUR"
+          ]
+        },
+        "savingsGoal": {
+          "type": "number",
+          "description": "The user's monthly savings goal."
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short bio about the user's financial goals."
+        },
+        "photoURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL for the user's profile picture."
         }
       },
       "required": [
