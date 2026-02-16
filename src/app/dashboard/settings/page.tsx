@@ -68,7 +68,7 @@ export default function SettingsPage() {
         currency: userData.currency || 'USD',
       });
     }
-  }, [userData, form]);
+  }, [userData, form.reset, form.formState.isDirty]);
 
   async function onSubmit(values: SettingsFormValues) {
     if (!user) {
@@ -165,7 +165,7 @@ export default function SettingsPage() {
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Currency</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select a currency" />
