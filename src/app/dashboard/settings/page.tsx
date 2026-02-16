@@ -31,14 +31,8 @@ import { formatCurrency } from '@/lib/currency';
 
 const settingsFormSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }).max(50, { message: 'Name must not be longer than 50 characters.' }),
-  income: z.preprocess(
-    (a) => parseFloat(z.string().parse(a)),
-    z.number().positive({ message: 'Income must be a positive number.' })
-  ),
-  savingsGoal: z.preprocess(
-    (a) => parseFloat(z.string().parse(a)),
-    z.number().min(0, { message: 'Savings goal cannot be negative.' })
-  ),
+  income: z.coerce.number().positive({ message: 'Income must be a positive number.' }),
+  savingsGoal: z.coerce.number().min(0, { message: 'Savings goal cannot be negative.' }),
   bio: z.string().max(160, { message: 'Bio must not be longer than 160 characters.' }).optional(),
   currency: z.enum(['USD', 'INR', 'EUR']),
 });
@@ -175,7 +169,7 @@ export default function SettingsPage() {
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select a currency" />
-                                    </SelectTrigger>
+                                    </Trigger>
                                     </FormControl>
                                     <SelectContent>
                                     <SelectItem value="USD">USD ($)</SelectItem>

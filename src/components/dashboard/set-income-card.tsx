@@ -25,10 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { DollarSign } from 'lucide-react';
 
 const formSchema = z.object({
-  income: z.preprocess(
-    (a) => parseFloat(z.string().parse(a)),
-    z.number().positive({ message: 'Income must be a positive number.' })
-  ),
+  income: z.coerce.number().positive({ message: 'Income must be a positive number.' }),
 });
 
 export function SetIncomeCard() {

@@ -32,10 +32,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Expense name is required.' }),
-  amount: z.preprocess(
-    (a) => parseFloat(z.string().parse(a)),
-    z.number().positive({ message: 'Amount must be a positive number.' })
-  ),
+  amount: z.coerce.number().positive({ message: 'Amount must be a positive number.' }),
   category: z.enum(['Needs', 'Wants', 'Savings']),
 });
 
