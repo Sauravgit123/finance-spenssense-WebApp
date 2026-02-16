@@ -130,7 +130,7 @@ export function AddExpenseForm({ currency }: AddExpenseFormProps) {
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a category" />
-                      </Trigger>
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="Needs">Needs</SelectItem>
