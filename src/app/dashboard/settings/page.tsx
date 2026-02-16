@@ -68,7 +68,7 @@ export default function SettingsPage() {
         currency: userData.currency || 'USD',
       });
     }
-  }, [userData, form.reset]);
+  }, [userData]);
 
   async function onSubmit(values: SettingsFormValues) {
     if (!user) {
